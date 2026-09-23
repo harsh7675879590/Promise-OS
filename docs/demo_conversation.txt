@@ -1,0 +1,6 @@
+[Mon 10:02] Client: Can you send the revised quotation by Friday?
+[Mon 10:03] Harshit: Yes, I'll send it.
+[Mon 10:15] Harshit: Amit, I need the updated pricing to finish the quote.
+[Mon 10:20] Amit: I'll send Harshit the updated pricing tomorrow.
+[Wed 09:00] Harshit: Amit, did you send the pricing?
+[Wed 09:41] Amit: Not yet, will do it today.
