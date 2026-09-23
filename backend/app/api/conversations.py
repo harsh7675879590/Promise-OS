@@ -18,9 +18,9 @@ from ..db.models import (
     RiskAssessmentModel, EvidenceModel, RecommendationModel, AgentRunModel
 )
 from ..models.schemas import (
-    CreateConversationRequest, IngestRequest, IngestResponse, Conversation, Message, PipelineState
+    CreateConversationRequest, IngestRequest, IngestResponse, Conversation, Message
 )
-from ..orchestration.state_machine import pipeline_app
+from ..orchestration.state_machine import pipeline_app, PipelineState
 
 router = APIRouter(prefix="", tags=["conversations"])
 
