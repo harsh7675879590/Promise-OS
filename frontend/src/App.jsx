@@ -1,122 +1,214 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import Navbar from './components/Navbar';
+import IngestModal from './components/IngestModal';
+import EvidenceDrawer from './components/EvidenceDrawer';
+import ApprovalModal from './components/ApprovalModal';
 
-function App() {
-  const [count, setCount] = useState(0)
+import Dashboard from './pages/Dashboard';
+import CommitmentsView from './pages/CommitmentsView';
+import GraphView from './pages/GraphView';
+import RiskCenter from './pages/RiskCenter';
+import WhatIfSimulator from './pages/WhatIfSimulator';
+import BenchmarkView from './pages/BenchmarkView';
+
+import { api } from './api/client';
+
+export default function App() {
+  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [backendOnline, setBackendOnline] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversationId, setActiveConversationId] = useState('');
+  
+  const [commitments, setCommitments] = useState([]);
+  const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
+  const [risks, setRisks] = useState([]);
+
+  // Modals & Drawers state
+  const [isIngestOpen, setIsIngestOpen] = useState(false);
+  const [selectedCommitmentId, setSelectedCommitmentId] = useState(null);
+  const [evidenceCommitmentData, setEvidenceCommitmentData] = useState(null);
+  const [activeRecommendation, setActiveRecommendation] = useState(null);
+  const [whatIfTargetId, setWhatIfTargetId] = useState(null);
+
+  // Poll backend health & load initial dataset
+  useEffect(() => {
+    checkHealthAndInit();
+    const interval = setInterval(checkHealth, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // When active conversation changes, reload its artifacts
+  useEffect(() => {
+    if (activeConversationId) {
+      loadConversationData(activeConversationId);
+    }
+  }, [activeConversationId]);
+
+  const checkHealth = async () => {
+    try {
+      await api.checkHealth();
+      setBackendOnline(true);
+    } catch {
+      setBackendOnline(false);
+    }
+  };
+
+  const checkHealthAndInit = async () => {
+    try {
+      await api.checkHealth();
+      setBackendOnline(true);
+      const convs = await api.listConversations();
+      setConversations(convs);
+
+      if (convs && convs.length > 0) {
+        setActiveConversationId(convs[0].id);
+      } else {
+        // If brand new, open Ingest modal so user can load demo WhatsApp export with one click
+        setIsIngestOpen(true);
+      }
+    } catch (err) {
+      console.warn('Backend not yet reachable on http://localhost:8000', err);
+      setBackendOnline(false);
+    }
+  };
+
+  const loadConversationData = async (convId) => {
+    try {
+      const [comms, graph, riskList] = await Promise.all([
+        api.listCommitments(convId),
+        api.getGraph(convId),
+        api.listRisks(convId)
+      ]);
+      setCommitments(comms || []);
+      setGraphData(graph || { nodes: [], edges: [] });
+      setRisks(riskList || []);
+    } catch (err) {
+      console.error('Failed to load conversation data:', err);
+    }
+  };
+
+  const handleIngestSuccess = async (newConvId) => {
+    const convs = await api.listConversations();
+    setConversations(convs);
+    setActiveConversationId(newConvId);
+    await loadConversationData(newConvId);
+    setCurrentTab('graph'); // Take user straight to the graph!
+  };
+
+  const handleOpenEvidence = async (commitmentId) => {
+    try {
+      const details = await api.getCommitment(commitmentId);
+      setEvidenceCommitmentData(details);
+      setSelectedCommitmentId(commitmentId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleOpenWhatIf = (commitmentId) => {
+    setWhatIfTargetId(commitmentId);
+    setCurrentTab('whatif');
+  };
+
+  const handleOpenApproval = (recommendation) => {
+    setActiveRecommendation(recommendation);
+  };
+
+  const handleApprovedSuccess = () => {
+    if (activeConversationId) {
+      loadConversationData(activeConversationId);
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Navigation */}
+      <Navbar
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        backendOnline={backendOnline}
+        onOpenIngest={() => setIsIngestOpen(true)}
+        activeConversation={conversations.find(c => c.id === activeConversationId)}
+      />
 
-      <div className="ticks"></div>
+      {/* Main Content Viewport */}
+      <main style={{ flex: 1, padding: '0 24px 32px 24px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
+        {currentTab === 'dashboard' && (
+          <Dashboard
+            commitments={commitments}
+            risks={risks}
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={setActiveConversationId}
+            setCurrentTab={setCurrentTab}
+            onOpenWhatIf={handleOpenWhatIf}
+            onOpenEvidence={handleOpenEvidence}
+            onOpenIngest={() => setIsIngestOpen(true)}
+          />
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {currentTab === 'commitments' && (
+          <CommitmentsView
+            commitments={commitments}
+            onOpenEvidence={handleOpenEvidence}
+            onOpenWhatIf={handleOpenWhatIf}
+          />
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {currentTab === 'graph' && (
+          <GraphView
+            graphData={graphData}
+            onSelectCommitment={handleOpenEvidence}
+          />
+        )}
+
+        {currentTab === 'risks' && (
+          <RiskCenter
+            risks={risks}
+            onOpenEvidence={handleOpenEvidence}
+            onOpenApproval={handleOpenApproval}
+            onOpenWhatIf={handleOpenWhatIf}
+          />
+        )}
+
+        {currentTab === 'whatif' && (
+          <WhatIfSimulator
+            commitments={commitments}
+            selectedCommitmentId={whatIfTargetId}
+            onOpenApproval={handleOpenApproval}
+          />
+        )}
+
+        {currentTab === 'benchmark' && (
+          <BenchmarkView />
+        )}
+      </main>
+
+      {/* Drawers & Modals */}
+      <IngestModal
+        isOpen={isIngestOpen}
+        onClose={() => setIsIngestOpen(false)}
+        onIngestSuccess={handleIngestSuccess}
+      />
+
+      <EvidenceDrawer
+        isOpen={Boolean(selectedCommitmentId && evidenceCommitmentData)}
+        onClose={() => {
+          setSelectedCommitmentId(null);
+          setEvidenceCommitmentData(null);
+        }}
+        commitment={evidenceCommitmentData?.commitment}
+        evidence={evidenceCommitmentData?.evidence}
+        riskAssessment={evidenceCommitmentData?.risk_assessment}
+        onOpenWhatIf={handleOpenWhatIf}
+      />
+
+      <ApprovalModal
+        isOpen={Boolean(activeRecommendation)}
+        onClose={() => setActiveRecommendation(null)}
+        recommendation={activeRecommendation}
+        onApproved={handleApprovedSuccess}
+      />
+    </div>
+  );
 }
-
-export default App
