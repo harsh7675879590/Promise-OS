@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 
-export default function WhatIfSimulator({ commitments, selectedCommitmentId, onOpenApproval }) {
-  const [targetId, setTargetId] = useState(selectedCommitmentId || (commitments[1]?.id || commitments[0]?.id || ''));
+export default function WhatIfSimulator({ commitments = [], selectedCommitmentId, onOpenApproval }) {
+  const safeCommitments = commitments || [];
+  const [targetId, setTargetId] = useState(selectedCommitmentId || (safeCommitments[1]?.id || safeCommitments[0]?.id || ''));
   const [simulationResult, setSimulationResult] = useState(null);
   const [simulating, setSimulating] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
@@ -22,10 +23,10 @@ export default function WhatIfSimulator({ commitments, selectedCommitmentId, onO
   useEffect(() => {
     if (selectedCommitmentId) {
       setTargetId(selectedCommitmentId);
-    } else if (commitments.length > 0 && !targetId) {
+    } else if (safeCommitments.length > 0 && !targetId) {
       // Default to Amit's pricing if available
-      const amitCommitment = commitments.find(c => c.owner.toLowerCase().includes('amit'));
-      setTargetId(amitCommitment ? amitCommitment.id : commitments[0].id);
+      const amitCommitment = safeCommitments.find(c => c && c.owner && c.owner.toLowerCase().includes('amit'));
+      setTargetId(amitCommitment ? amitCommitment.id : safeCommitments[0].id);
     }
   }, [selectedCommitmentId, commitments]);
 
@@ -58,7 +59,7 @@ export default function WhatIfSimulator({ commitments, selectedCommitmentId, onO
     setActiveStep(0);
   };
 
-  const targetCommitment = commitments.find(c => c.id === targetId);
+  const targetCommitment = safeCommitments.find(c => c && c.id === targetId);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -97,7 +98,7 @@ export default function WhatIfSimulator({ commitments, selectedCommitmentId, onO
               minWidth: '280px'
             }}
           >
-            {commitments.map((c) => (
+            {safeCommitments.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.owner}: {c.deliverable || c.action}
               </option>

@@ -128,8 +128,43 @@ export default function App() {
         setCurrentTab={setCurrentTab}
         backendOnline={backendOnline}
         onOpenIngest={() => setIsIngestOpen(true)}
-        activeConversation={conversations.find(c => c.id === activeConversationId)}
+        activeConversation={(conversations || []).find(c => c && c.id === activeConversationId)}
       />
+
+      {/* Backend Offline Banner */}
+      {!backendOnline && (
+        <div style={{
+          margin: '0 24px 16px 24px',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          background: 'rgba(244, 63, 94, 0.15)',
+          border: '1px solid rgba(244, 63, 94, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          color: '#fb7185',
+          fontSize: '0.85rem'
+        }}>
+          <div>
+            <strong>FastAPI Backend is currently connecting...</strong> Make sure the backend server is running on <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>http://127.0.0.1:8000</code>.
+          </div>
+          <button
+            onClick={checkHealthAndInit}
+            style={{
+              background: 'rgba(244, 63, 94, 0.25)',
+              border: '1px solid rgba(244, 63, 94, 0.5)',
+              color: '#fff',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 600
+            }}
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* Main Content Viewport */}
       <main style={{ flex: 1, padding: '0 24px 32px 24px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>

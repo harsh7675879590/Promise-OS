@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { Search, Filter, Clock, User, ShieldAlert, ArrowRight, Sliders } from 'lucide-react';
 
-export default function CommitmentsView({ commitments, onOpenEvidence, onOpenWhatIf }) {
+export default function CommitmentsView({ commitments = [], onOpenEvidence, onOpenWhatIf }) {
   const [search, setSearch] = useState('');
   const [filterLevel, setFilterLevel] = useState('ALL');
 
-  const filtered = commitments.filter((c) => {
+  const safeCommitments = commitments || [];
+  const query = (search || '').toLowerCase();
+
+  const filtered = safeCommitments.filter((c) => {
+    if (!c) return false;
     const matchesSearch = 
-      c.action.toLowerCase().includes(search.toLowerCase()) ||
-      c.owner.toLowerCase().includes(search.toLowerCase()) ||
-      c.recipient.toLowerCase().includes(search.toLowerCase()) ||
-      (c.deliverable && c.deliverable.toLowerCase().includes(search.toLowerCase()));
+      (c.action || '').toLowerCase().includes(query) ||
+      (c.owner || '').toLowerCase().includes(query) ||
+      (c.recipient || '').toLowerCase().includes(query) ||
+      (c.deliverable || '').toLowerCase().includes(query);
 
     const matchesFilter = filterLevel === 'ALL' || c.risk_level === filterLevel;
 

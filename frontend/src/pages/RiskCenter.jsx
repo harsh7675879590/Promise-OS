@@ -1,9 +1,10 @@
 import React from 'react';
 import { AlertTriangle, ShieldCheck, ArrowRight, User, Check, Clock, CheckCircle2 } from 'lucide-react';
 
-export default function RiskCenter({ risks, onOpenEvidence, onOpenApproval, onOpenWhatIf }) {
+export default function RiskCenter({ risks = [], onOpenEvidence, onOpenApproval, onOpenWhatIf }) {
   // Sort HIGH first
-  const sorted = [...risks].sort((a, b) => b.score - a.score);
+  const safeRisks = risks || [];
+  const sorted = [...safeRisks].sort((a, b) => (b?.score || 0) - (a?.score || 0));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -20,7 +21,7 @@ export default function RiskCenter({ risks, onOpenEvidence, onOpenApproval, onOp
         </div>
 
         <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-          {sorted.filter(r => r.level === 'HIGH').length} High Priority Alert(s)
+          {sorted.filter(r => r && r.level === 'HIGH').length} High Priority Alert(s)
         </div>
       </div>
 

@@ -13,9 +13,9 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard({ 
-  commitments, 
-  risks, 
-  conversations, 
+  commitments = [], 
+  risks = [], 
+  conversations = [], 
   activeConversationId, 
   onSelectConversation, 
   setCurrentTab, 
@@ -23,9 +23,13 @@ export default function Dashboard({
   onOpenEvidence,
   onOpenIngest
 }) {
-  const activeConv = conversations.find(c => c.id === activeConversationId);
-  const highRiskCount = risks.filter(r => r.level === 'HIGH').length;
-  const mediumRiskCount = risks.filter(r => r.level === 'MEDIUM').length;
+  const safeConvs = conversations || [];
+  const safeRisks = risks || [];
+  const safeCommitments = commitments || [];
+
+  const activeConv = safeConvs.find(c => c && c.id === activeConversationId);
+  const highRiskCount = safeRisks.filter(r => r && r.level === 'HIGH').length;
+  const mediumRiskCount = safeRisks.filter(r => r && r.level === 'MEDIUM').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -66,7 +70,7 @@ export default function Dashboard({
             <CheckCircle2 size={18} color="var(--accent-cyan)" />
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1 }}>
-            {commitments.length}
+            {safeCommitments.length}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '8px' }}>
             Across 3 active participants
@@ -184,12 +188,12 @@ export default function Dashboard({
               onClick={() => setCurrentTab('commitments')}
               style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', fontSize: '0.8rem' }}
             >
-              View all ({commitments.length})
+              View all ({safeCommitments.length})
             </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {commitments.slice(0, 4).map((c) => {
+            {safeCommitments.slice(0, 4).map((c) => {
               const isHigh = c.risk_level === 'HIGH';
               const isMed = c.risk_level === 'MEDIUM';
               return (
