@@ -50,6 +50,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    print(f"\n[422 Validation Error] Path: {request.method} {request.url.path}")
+    print(f"Details: {errors}\n")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": "Validation Error (422)",
+            "message": "The request reached the API, but some fields did not satisfy the expected schema.",
+            "path": request.url.path,
+            "details": [
+                {
+                    "field": " -> ".join(str(loc) for loc in err.get("loc", [])),
+                    "issue": err.get("msg"),
+                    "type": err.get("type")
+                }
+                for err in errors
+            ]
+        }
+    )
+
 # Register all API routers
 app.include_router(conversations_router)
 app.include_router(commitments_router)

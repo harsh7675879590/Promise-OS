@@ -17,8 +17,12 @@ router = APIRouter(prefix="", tags=["whatif"])
 
 @router.post("/what-if")
 async def run_what_if_simulation(req: WhatIfRequest, db: AsyncSession = Depends(get_db)):
+    target_id = req.get_commitment_id()
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Please provide 'commitment_id' or 'id' in request body.")
+
     # 1. Fetch target commitment to identify conversation
-    t_res = await db.execute(select(CommitmentModel).where(CommitmentModel.id == req.commitment_id))
+    t_res = await db.execute(select(CommitmentModel).where(CommitmentModel.id == target_id))
     target = t_res.scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=404, detail="Target commitment not found for simulation")
@@ -30,10 +34,13 @@ async def run_what_if_simulation(req: WhatIfRequest, db: AsyncSession = Depends(
     commitments_db = c_res.scalars().all()
 
     c_ids = [c.id for c in commitments_db]
-    d_res = await db.execute(
-        select(DependencyModel).where(DependencyModel.from_commitment_id.in_(c_ids))
-    )
-    dependencies_db = d_res.scalars().all()
+    if c_ids:
+        d_res = await db.execute(
+            select(DependencyModel).where(DependencyModel.from_commitment_id.in_(c_ids))
+        )
+        dependencies_db = d_res.scalars().all()
+    else:
+        dependencies_db = []
 
     # Convert to Pydantic objects for the non-destructive engine
     commitments = [
@@ -66,7 +73,7 @@ async def run_what_if_simulation(req: WhatIfRequest, db: AsyncSession = Depends(
 
     # 3. Simulate delay cascade in memory
     simulation_result = whatif_engine.simulate_delay(
-        target_commitment_id=req.commitment_id,
+        target_commitment_id=target_id,
         commitments=commitments,
         dependencies=dependencies
     )

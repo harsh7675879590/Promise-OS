@@ -162,24 +162,37 @@ class AgentRun(BaseModel):
 # ─── API Request / Response Models ───────────────────────────────────────────
 
 class CreateConversationRequest(BaseModel):
-    title: str = ""
-    source_type: str = "whatsapp"
+    title: Optional[str] = "Imported Conversation"
+    source_type: Optional[str] = "whatsapp"
 
 
 class IngestRequest(BaseModel):
-    conversation_id: str
-    raw_text: str
+    conversation_id: Optional[str] = Field(default=None, description="Optional conversation ID. Auto-created if omitted.")
+    raw_text: Optional[str] = Field(default=None, description="The chat transcript text.")
+    text: Optional[str] = Field(default=None, description="Alias for raw_text.")
+    content: Optional[str] = Field(default=None, description="Alias for raw_text.")
+
+    def get_text(self) -> str:
+        return (self.raw_text or self.text or self.content or "").strip()
 
 
 class IngestResponse(BaseModel):
     status: str
     conversation_id: str
+    commitments_extracted: int = 0
+    dependencies_found: int = 0
+    highest_risk: str = "LOW"
     agent_run_id: str = ""
 
 
 class WhatIfRequest(BaseModel):
-    commitment_id: str
+    commitment_id: Optional[str] = Field(default=None, description="The ID of the commitment to simulate delay on.")
+    id: Optional[str] = Field(default=None, description="Alias for commitment_id.")
+    target_id: Optional[str] = Field(default=None, description="Alias for commitment_id.")
     scenario: str = "delayed"
+
+    def get_commitment_id(self) -> str:
+        return (self.commitment_id or self.id or self.target_id or "").strip()
 
 
 class CascadeItem(BaseModel):
@@ -200,7 +213,7 @@ class WhatIfResponse(BaseModel):
 
 
 class ApproveRequest(BaseModel):
-    user_id: str = "default_user"
+    user_id: Optional[str] = "default_user"
 
 
 class GraphNode(BaseModel):

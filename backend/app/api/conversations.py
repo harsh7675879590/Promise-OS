@@ -124,17 +124,25 @@ async def list_conversations(db: AsyncSession = Depends(get_db)):
 
 @router.post("/ingest")
 async def ingest_conversation(req: IngestRequest, db: AsyncSession = Depends(get_db)):
-    # 1. Verify conversation
-    result = await db.execute(select(ConversationModel).where(ConversationModel.id == req.conversation_id))
+    # 1. Extract text and auto-generate conversation if missing
+    raw_text = req.get_text()
+    if not raw_text:
+        raise HTTPException(
+            status_code=400,
+            detail="No chat content provided. Please provide conversation text in 'raw_text' or 'text' field."
+        )
+
+    conv_id = req.conversation_id or str(uuid.uuid4())
+
+    result = await db.execute(select(ConversationModel).where(ConversationModel.id == conv_id))
     conv = result.scalar_one_or_none()
     if not conv:
-        # Create on the fly if not yet registered
-        conv = ConversationModel(id=req.conversation_id, title="Imported Thread")
+        conv = ConversationModel(id=conv_id, title="Imported Chat Thread")
         db.add(conv)
         await db.commit()
 
     # 2. Parse raw text into structured messages
-    parsed_messages = parse_whatsapp_text(req.raw_text, req.conversation_id)
+    parsed_messages = parse_whatsapp_text(raw_text, conv_id)
     if not parsed_messages:
         raise HTTPException(status_code=400, detail="Could not parse any messages from provided text format.")
 
@@ -142,7 +150,7 @@ async def ingest_conversation(req: IngestRequest, db: AsyncSession = Depends(get
     for m in parsed_messages:
         msg_db = MessageModel(
             id=m.id,
-            conversation_id=req.conversation_id,
+            conversation_id=conv_id,
             sender_name=m.sender_name,
             text=m.text,
             sent_at=m.sent_at,
@@ -153,7 +161,7 @@ async def ingest_conversation(req: IngestRequest, db: AsyncSession = Depends(get
 
     # 3. Execute LangGraph 5-Agent pipeline
     initial_state: PipelineState = {
-        "conversation_id": req.conversation_id,
+        "conversation_id": conv_id,
         "messages": parsed_messages,
         "commitments": [],
         "dependencies": [],
@@ -172,7 +180,7 @@ async def ingest_conversation(req: IngestRequest, db: AsyncSession = Depends(get
     for c in final_state.get("commitments", []):
         c_db = CommitmentModel(
             id=c.id,
-            conversation_id=req.conversation_id,
+            conversation_id=conv_id,
             owner_name=c.owner_name,
             recipient_name=c.recipient_name,
             action_text=c.action_text,
@@ -239,7 +247,7 @@ async def ingest_conversation(req: IngestRequest, db: AsyncSession = Depends(get
     for run in final_state.get("agent_runs", []):
         run_db = AgentRunModel(
             id=run.id,
-            conversation_id=req.conversation_id,
+            conversation_id=conv_id,
             agent_name=run.agent_name,
             input_json={"summary": run.input_summary},
             output_json={"summary": run.output_summary},
@@ -253,7 +261,7 @@ async def ingest_conversation(req: IngestRequest, db: AsyncSession = Depends(get
 
     return {
         "status": "completed",
-        "conversation_id": req.conversation_id,
+        "conversation_id": conv_id,
         "commitments_extracted": len(final_state.get("commitments", [])),
         "dependencies_found": len(final_state.get("dependencies", [])),
         "highest_risk": final_state.get("highest_risk_level", "LOW")
