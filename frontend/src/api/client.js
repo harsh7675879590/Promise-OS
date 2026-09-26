@@ -1,9 +1,20 @@
 /**
  * PromiseOS — API Client Service
- * Interacts with FastAPI backend endpoints on http://localhost:8000
+ * Dynamically resolves backend host to support localhost, 127.0.0.1, and external LAN/host IPs.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:8000`;
+  }
+  return 'http://127.0.0.1:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -20,7 +31,7 @@ async function request(endpoint, options = {}) {
     }
     return await response.json();
   } catch (err) {
-    console.error(`API Error on ${endpoint}:`, err);
+    console.error(`PromiseOS API Error on ${endpoint}:`, err);
     throw err;
   }
 }
