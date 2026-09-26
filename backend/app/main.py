@@ -4,18 +4,27 @@ Autonomous commitment extraction, dependency graph generation, deterministic ris
 what-if counterfactual cascade simulation, and AMD ROCm benchmark harness.
 """
 
+import sys
+from pathlib import Path
+
+# Add backend directory to sys.path so both absolute and relative execution modes work seamlessly
+current_file = Path(__file__).resolve()
+backend_dir = current_file.parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from .db.session import init_db
-from .api.conversations import router as conversations_router
-from .api.commitments import router as commitments_router
-from .api.graph import router as graph_router
-from .api.risks import router as risks_router
-from .api.whatif import router as whatif_router
-from .api.approvals import router as approvals_router
-from .api.benchmark import router as benchmark_router
+from app.db.session import init_db
+from app.api.conversations import router as conversations_router
+from app.api.commitments import router as commitments_router
+from app.api.graph import router as graph_router
+from app.api.risks import router as risks_router
+from app.api.whatif import router as whatif_router
+from app.api.approvals import router as approvals_router
+from app.api.benchmark import router as benchmark_router
 
 
 @asynccontextmanager
@@ -64,3 +73,9 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\nStarting PromiseOS Backend on http://127.0.0.1:8000 ...")
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

@@ -4,10 +4,13 @@ Supports SQLite out-of-the-box (zero configuration needed) and PostgreSQL / pgve
 """
 
 import os
+from pathlib import Path
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./promiseos.db")
+# Ensure deterministic absolute path for SQLite regardless of execution CWD
+DEFAULT_DB_FILE = Path(__file__).resolve().parent.parent / "promiseos.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DEFAULT_DB_FILE.as_posix()}")
 
 # If user provided a postgres:// url, convert to asyncpg
 if DATABASE_URL.startswith("postgresql://"):
