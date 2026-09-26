@@ -1,6 +1,6 @@
 """
 PromiseOS — Single-Click Backend Launcher
-Runs the FastAPI backend from anywhere in the repository.
+Runs the FastAPI backend from anywhere in the repository, accepting both local and external network requests.
 """
 
 import sys
@@ -15,7 +15,8 @@ if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*60)
     print(" PromiseOS — Autonomous Commitment Graph & Risk Engine")
-    print(" Server: http://127.0.0.1:8000")
-    print(" API Documentation: http://127.0.0.1:8000/docs")
+    print(" Local: http://localhost:8000")
+    print(" Network: http://0.0.0.0:8000")
+    print(" API Documentation: http://localhost:8000/docs")
     print("="*60 + "\n")
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

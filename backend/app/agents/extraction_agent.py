@@ -2,6 +2,7 @@
 PromiseOS — Extraction Agent (Agent 1/5)
 Parses raw conversation messages into structured commitments with owner, recipient,
 action, deliverable, raw deadline, normalized deadline, confidence, and source message citation.
+Supports universal chat formats and flexible phrase extraction.
 """
 
 import re
@@ -21,17 +22,29 @@ DAY_MAP = {
     "sunday": 6, "sun": 6
 }
 
+ACTION_VERBS = (
+    "send|share|give|deliver|prepare|finish|complete|handle|submit|fix|"
+    "create|review|upload|deploy|build|write|update|provide|check|finalize|draft"
+)
+
+DEADLINE_REGEX = (
+    r"(?:by\s+[a-zA-Z0-9\s]+|tomorrow|today|tonight|eod|next\s+week|this\s+week|asap|soon|in\s+\d+\s+days)"
+)
+
 
 def normalize_relative_deadline(raw_deadline: str, base_time: datetime) -> Optional[datetime]:
     """Normalizes relative strings like 'tomorrow', 'Friday', 'today', 'EOD' into ISO datetimes."""
     if not raw_deadline:
-        return None
+        return base_time + timedelta(days=2)
     raw_lower = raw_deadline.lower().strip()
 
-    if "today" in raw_lower or "eod" in raw_lower:
+    if "today" in raw_lower or "tonight" in raw_lower or "eod" in raw_lower:
         return base_time.replace(hour=18, minute=0, second=0, microsecond=0)
     elif "tomorrow" in raw_lower:
         target = base_time + timedelta(days=1)
+        return target.replace(hour=18, minute=0, second=0, microsecond=0)
+    elif "next week" in raw_lower:
+        target = base_time + timedelta(days=7)
         return target.replace(hour=18, minute=0, second=0, microsecond=0)
     
     for day_name, day_idx in DAY_MAP.items():
@@ -43,8 +56,8 @@ def normalize_relative_deadline(raw_deadline: str, base_time: datetime) -> Optio
             target = base_time + timedelta(days=days_ahead)
             return target.replace(hour=18, minute=0, second=0, microsecond=0)
             
-    # Default to 3 days out if unspecified
-    return base_time + timedelta(days=3)
+    # Default to 2 days out if unspecified
+    return base_time + timedelta(days=2)
 
 
 class ExtractionAgent:
@@ -71,7 +84,8 @@ class ExtractionAgent:
                     status=CommitmentStatus.OPEN,
                     source_message_id=item.get("source_message_id", "")
                 ))
-            return commitments
+            if commitments:
+                return commitments
 
         # High-precision deterministic fallback rule-set for conversation flow
         return self._extract_deterministic(messages, conversation_id)
@@ -113,36 +127,40 @@ class ExtractionAgent:
             prev_msg = messages[i - 1] if i > 0 else None
 
             # Pattern 1: Response to a request (e.g. Client: "Can you send the revised quotation by Friday?" -> Harshit: "Yes, I'll send it.")
-            if prev_msg and re.search(r"(?:can you|could you|please)\s+(?:send|prepare|share|provide|complete)\s+(.+?)(?:\s+by\s+([a-zA-Z0-9\s]+))?\?", prev_msg.text, re.IGNORECASE):
-                req_match = re.search(r"(?:can you|could you|please)\s+(?:send|prepare|share|provide|complete)\s+(.+?)(?:\s+by\s+([a-zA-Z0-9\s]+))?\?", prev_msg.text, re.IGNORECASE)
-                deliverable = req_match.group(1).strip()
-                raw_deadline = req_match.group(2).strip() if req_match.group(2) else ""
+            if prev_msg:
+                req_pattern = rf"(?:can you|could you|please|can we)\s+(?:{ACTION_VERBS})\s+(.+?)(?:\s+by\s+([a-zA-Z0-9\s]+))?\?"
+                req_match = re.search(req_pattern, prev_msg.text, re.IGNORECASE)
+                if req_match:
+                    deliverable = req_match.group(1).strip()
+                    raw_deadline = req_match.group(2).strip() if req_match.group(2) else ""
 
-                if re.search(r"^(yes|sure|ok|will do|i will|i'll send|i'll do)", text, re.IGNORECASE):
-                    norm_deadline = normalize_relative_deadline(raw_deadline, msg.sent_at)
-                    commitments.append(Commitment(
-                        conversation_id=conversation_id,
-                        owner_name=sender,
-                        recipient_name=prev_msg.sender_name,
-                        action_text=f"send {deliverable}",
-                        deliverable_text=deliverable,
-                        deadline_raw=raw_deadline,
-                        deadline_normalized=norm_deadline,
-                        confidence=0.93,
-                        status=CommitmentStatus.OPEN,
-                        source_message_id=msg.id
-                    ))
-                    continue
+                    if re.search(r"^(yes|sure|ok|will do|i will|i'll send|i'll do|on it|working on it)", text, re.IGNORECASE):
+                        norm_deadline = normalize_relative_deadline(raw_deadline, msg.sent_at)
+                        commitments.append(Commitment(
+                            conversation_id=conversation_id,
+                            owner_name=sender,
+                            recipient_name=prev_msg.sender_name,
+                            action_text=f"send {deliverable}",
+                            deliverable_text=deliverable,
+                            deadline_raw=raw_deadline,
+                            deadline_normalized=norm_deadline,
+                            confidence=0.93,
+                            status=CommitmentStatus.OPEN,
+                            source_message_id=msg.id
+                        ))
+                        continue
 
-            # Pattern 2: Direct statement of promise (e.g. "I'll send Harshit the updated pricing tomorrow.")
-            direct_promise = re.search(r"(?:i will|i'll)\s+(?:send|share|give|deliver|prepare)\s+([a-zA-Z0-9_\s]+?)\s+(?:the\s+)?(.+?)(?:\s+(tomorrow|today|by\s+[a-zA-Z]+|eod|next\s+week))(?:\.|$)", text, re.IGNORECASE)
+            # Pattern 2: Direct statement of promise with target recipient (e.g. "I'll send Harshit the updated pricing tomorrow.")
+            direct_promise = re.search(
+                rf"(?:i will|i'll|will do|we will|we'll)\s+(?:{ACTION_VERBS})\s+([a-zA-Z0-9_\s]+?)\s+(?:the\s+)?(.+?)(?:\s+({DEADLINE_REGEX}))?(?:\.|$)",
+                text, re.IGNORECASE
+            )
             if direct_promise:
                 target_recipient = direct_promise.group(1).strip()
                 deliverable = direct_promise.group(2).strip()
-                raw_deadline = direct_promise.group(3).strip()
+                raw_deadline = direct_promise.group(3).strip() if direct_promise.group(3) else ""
 
-                # Clean target recipient if it's "Harshit" or similar
-                if target_recipient.lower() in ["the", "a", "an"]:
+                if target_recipient.lower() in ["the", "a", "an", "this", "that"]:
                     deliverable = f"{target_recipient} {deliverable}"
                     target_recipient = prev_msg.sender_name if prev_msg else "Team"
 
@@ -151,7 +169,7 @@ class ExtractionAgent:
                     conversation_id=conversation_id,
                     owner_name=sender,
                     recipient_name=target_recipient,
-                    action_text=f"send {deliverable}",
+                    action_text=f"deliver {deliverable}",
                     deliverable_text=deliverable,
                     deadline_raw=raw_deadline,
                     deadline_normalized=norm_deadline,
@@ -162,7 +180,10 @@ class ExtractionAgent:
                 continue
 
             # Pattern 3: Standard promise without explicit recipient in sentence (e.g. "I'll finish the pricing by Thursday")
-            promise_general = re.search(r"(?:i will|i'll|will do)\s+(?:send|finish|complete|prepare|handle)\s+(?:the\s+)?(.+?)(?:\s+(by\s+[a-zA-Z]+|tomorrow|today|eod))?(?:\.|$)", text, re.IGNORECASE)
+            promise_general = re.search(
+                rf"(?:i will|i'll|will do|we will|we'll|i can|i promise to)\s+(?:{ACTION_VERBS})\s+(?:the\s+)?(.+?)(?:\s+({DEADLINE_REGEX}))?(?:\.|$)",
+                text, re.IGNORECASE
+            )
             if promise_general:
                 deliverable = promise_general.group(1).strip()
                 raw_deadline = promise_general.group(2).strip() if promise_general.group(2) else ""
@@ -178,6 +199,25 @@ class ExtractionAgent:
                     deadline_raw=raw_deadline,
                     deadline_normalized=norm_deadline,
                     confidence=0.82,
+                    status=CommitmentStatus.OPEN,
+                    source_message_id=msg.id
+                ))
+                continue
+
+            # Pattern 4: Broad fallback for commitments ("will do it today", "handling this", "finishing today")
+            broad_match = re.search(r"(?:will do|handle|finishing|on it)\s+(?:it\s+)?({DEADLINE_REGEX})?", text, re.IGNORECASE)
+            if broad_match and prev_msg:
+                raw_deadline = broad_match.group(1).strip() if broad_match.group(1) else ""
+                norm_deadline = normalize_relative_deadline(raw_deadline, msg.sent_at)
+                commitments.append(Commitment(
+                    conversation_id=conversation_id,
+                    owner_name=sender,
+                    recipient_name=prev_msg.sender_name,
+                    action_text=f"follow-through on previous request",
+                    deliverable_text="requested deliverable",
+                    deadline_raw=raw_deadline or "today",
+                    deadline_normalized=norm_deadline,
+                    confidence=0.75,
                     status=CommitmentStatus.OPEN,
                     source_message_id=msg.id
                 ))

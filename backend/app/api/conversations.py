@@ -27,48 +27,76 @@ router = APIRouter(prefix="", tags=["conversations"])
 
 def parse_whatsapp_text(raw_text: str, conversation_id: str) -> List[Message]:
     """
-    Parses WhatsApp format: [Day Time] Sender: Message text
-    e.g. [Mon 10:02] Client: Can you send the revised quotation by Friday?
-    Also handles standard [Date Time] formats or Sender: Message.
+    Universally parses chat exports:
+    - [Mon 10:02] Sender: Message
+    - [24/09/2026, 10:02:15] Sender: Message
+    - 24/09/2026, 10:02 - Sender: Message (Standard Android / iOS WhatsApp export)
+    - 24/09/2026, 10:02 am - Sender: Message (Standard 12h format)
+    - Sender (10:02): Message
+    - Sender: Message
+    - Multiline continuation lines
     """
     messages: List[Message] = []
     lines = [l.strip() for l in raw_text.splitlines() if l.strip()]
-
     base_time = datetime.utcnow()
 
+    # Ordered list of regex patterns from most specific to general
+    header_patterns = [
+        # 1. [timestamp] Sender: text
+        re.compile(r"^\[(.*?)\]\s*([^:\(\)]+?):\s*(.*)$"),
+        # 2. Date, Time (with optional AM/PM) - Sender: text
+        re.compile(r"^(?:\d{1,4}[/\-\.]\d{1,2}[/\-\.]\d{1,4}[,\s]+)?(?:\d{1,2}:\d{2}(?::\d{2})?(?:\s*[apAP][mM])?)\s*[\-\–]\s*([^:]+?):\s*(.*)$"),
+        # 3. Date/Any - Sender: text
+        re.compile(r"^(?:.+?)\s*[\-\–]\s*([^:]+?):\s*(.*)$"),
+        # 4. Sender (Time): text
+        re.compile(r"^([^:\(\)]+?)\s*\([^\)]+\):\s*(.*)$"),
+        # 5. Sender: text
+        re.compile(r"^([^:]+?):\s*(.*)$")
+    ]
+
     for idx, line in enumerate(lines):
-        # Match [Day/Date Time] Sender: Message
-        match_bracket = re.match(r"^\[(.*?)\]\s*([^:]+):\s*(.*)$", line)
-        if match_bracket:
-            timestamp_str = match_bracket.group(1).strip()
-            sender = match_bracket.group(2).strip()
-            text = match_bracket.group(3).strip()
-            
-            # Simple synthetic timestamp relative to now based on idx
-            sent_at = base_time.replace(hour=10 + (idx // 2), minute=idx * 5 % 60, second=0)
+        matched = False
+        for p in header_patterns:
+            m = p.match(line)
+            if m:
+                groups = m.groups()
+                if len(groups) == 3:
+                    # [timestamp] sender: text
+                    sender = groups[1].strip()
+                    text = groups[2].strip()
+                else:
+                    # sender: text
+                    sender = groups[0].strip()
+                    text = groups[1].strip()
 
+                # Filter out accidental matches like URLs or time stamps as senders
+                if len(sender) > 60 or "http" in sender.lower():
+                    continue
+
+                sent_at = base_time.replace(hour=9 + (idx // 2), minute=(idx * 7) % 60, second=0)
+
+                messages.append(Message(
+                    id=str(uuid.uuid4()),
+                    conversation_id=conversation_id,
+                    sender_name=sender,
+                    text=text,
+                    sent_at=sent_at,
+                    raw_index=idx
+                ))
+                matched = True
+                break
+
+        if not matched and messages:
+            # Continuation of previous message
+            messages[-1].text += "\n" + line
+        elif not matched:
+            # Fallback for line without colon
             messages.append(Message(
                 id=str(uuid.uuid4()),
                 conversation_id=conversation_id,
-                sender_name=sender,
-                text=text,
-                sent_at=sent_at,
-                raw_index=idx
-            ))
-            continue
-
-        # Match Sender: Message
-        match_colon = re.match(r"^([^:]+):\s*(.*)$", line)
-        if match_colon:
-            sender = match_colon.group(1).strip()
-            text = match_colon.group(2).strip()
-            sent_at = base_time.replace(hour=10 + (idx // 2), minute=idx * 5 % 60, second=0)
-            messages.append(Message(
-                id=str(uuid.uuid4()),
-                conversation_id=conversation_id,
-                sender_name=sender,
-                text=text,
-                sent_at=sent_at,
+                sender_name="Participant",
+                text=line,
+                sent_at=base_time.replace(hour=9 + (idx // 2), minute=(idx * 7) % 60, second=0),
                 raw_index=idx
             ))
 
