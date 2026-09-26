@@ -27,7 +27,15 @@ async function request(endpoint, options = {}) {
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody.detail || `HTTP Error ${response.status}: ${response.statusText}`);
+      let msg = errBody.detail || errBody.message || errBody.error;
+      if (Array.isArray(msg)) {
+        msg = msg.map(m => (typeof m === 'object' ? `${m.loc ? m.loc.join('.') + ': ' : ''}${m.msg || JSON.stringify(m)}` : m)).join(', ');
+      } else if (errBody.details && Array.isArray(errBody.details)) {
+        msg = errBody.details.map(d => `${d.field}: ${d.issue}`).join(', ');
+      } else if (typeof msg === 'object') {
+        msg = JSON.stringify(msg);
+      }
+      throw new Error(msg || `HTTP Error ${response.status}: ${response.statusText}`);
     }
     return await response.json();
   } catch (err) {
