@@ -1,160 +1,204 @@
-import React from 'react';
-import { AlertTriangle, ShieldCheck, ArrowRight, User, Check, Clock, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, ShieldCheck, ArrowRight, User, Check, Clock, CheckCircle2, Sliders, ExternalLink } from 'lucide-react';
 
 export default function RiskCenter({ risks = [], onOpenEvidence, onOpenApproval, onOpenWhatIf }) {
-  // Sort HIGH first
+  const [filterLevel, setFilterLevel] = useState('ALL');
+
   const safeRisks = risks || [];
   const sorted = [...safeRisks].sort((a, b) => (b?.score || 0) - (a?.score || 0));
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Header */}
-      <div className="glass-panel" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={20} color="var(--risk-high)" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Risk Intelligence Center</h2>
-          </div>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-            Deterministic risk scoring computed from observable delivery signals & graph adjacency.
-          </p>
-        </div>
+  const filtered = sorted.filter(r => {
+    if (!r) return false;
+    if (filterLevel === 'ALL') return true;
+    return (r.level || 'LOW') === filterLevel;
+  });
 
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-          {sorted.filter(r => r && r.level === 'HIGH').length} High Priority Alert(s)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Header & Controls Bar */}
+      <div className="classic-panel">
+        <div className="classic-panel-header">
+          <span>RISK INTELLIGENCE REGISTER</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Filter Level:</span>
+            <select
+              value={filterLevel}
+              onChange={(e) => setFilterLevel(e.target.value)}
+              style={{ fontSize: '11px', padding: '2px 6px' }}
+            >
+              <option value="ALL">All Levels ({sorted.length})</option>
+              <option value="HIGH">High Risk ({sorted.filter(r => r.level === 'HIGH').length})</option>
+              <option value="MEDIUM">Medium Risk ({sorted.filter(r => r.level === 'MEDIUM').length})</option>
+              <option value="LOW">Low Risk ({sorted.filter(r => r.level === 'LOW').length})</option>
+            </select>
+          </div>
+        </div>
+        <div className="classic-panel-body" style={{ padding: '12px 16px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
+            Deterministic Risk Scoring Engine
+          </div>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Risk scores computed via Section 10 formula: 0.40 &times; Urgency + 0.35 &times; Impact + 0.15 &times; Historical Reliability + 0.10 &times; Load
+          </p>
         </div>
       </div>
 
-      {/* Cards list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {sorted.map((r) => {
-          const isHigh = r.level === 'HIGH';
-          const isMed = r.level === 'MEDIUM';
+      {/* Risk Cards List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {filtered.length === 0 ? (
+          <div className="classic-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '12px' }}>
+            No risk assessments match the selected filter.
+          </div>
+        ) : (
+          filtered.map((r) => {
+            const isHigh = r.level === 'HIGH';
+            const isMed = r.level === 'MEDIUM';
+            const badgeClass = isHigh ? 'badge-risk-high' : isMed ? 'badge-risk-medium' : 'badge-risk-low';
+            const borderColor = isHigh ? 'var(--risk-high-border)' : isMed ? 'var(--risk-medium-border)' : 'var(--border-main)';
 
-          return (
-            <div
-              key={r.id}
-              className={`glass-panel ${isHigh ? 'glow-high' : isMed ? 'glow-medium' : ''}`}
-              style={{
-                padding: '24px',
-                borderLeftWidth: '4px',
-                borderLeftColor: isHigh ? 'var(--risk-high)' : isMed ? 'var(--risk-medium)' : 'var(--risk-low)'
-              }}
-            >
-              {/* Header row */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      color: isHigh ? 'var(--risk-high)' : isMed ? 'var(--risk-medium)' : 'var(--risk-low)',
-                      background: isHigh ? 'var(--risk-high-bg)' : isMed ? 'var(--risk-medium-bg)' : 'var(--risk-low-bg)',
-                      border: `1px solid ${isHigh ? 'var(--risk-high)' : isMed ? 'var(--risk-medium)' : 'var(--risk-low)'}`
-                    }}>
-                      {r.level} RISK ({r.score.toFixed(3)})
+            return (
+              <div
+                key={r.id}
+                className="classic-panel"
+                style={{ borderLeft: `3px solid ${isHigh ? 'var(--risk-high)' : isMed ? 'var(--risk-medium)' : 'var(--risk-low)'}` }}
+              >
+                {/* Header Row */}
+                <div className="classic-panel-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`badge-classic ${badgeClass}`}>
+                      {r.level} RISK (Score: {r.score.toFixed(3)})
                     </span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                      Deadline: {r.deadline || 'Approaching'}
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                      Deadline: <strong>{r.deadline || 'Approaching'}</strong>
                     </span>
                   </div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    {r.deliverable || r.commitment_action}
-                  </h3>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Promised by <strong style={{ color: 'var(--text-main)' }}>{r.owner}</strong> to <strong style={{ color: 'var(--text-main)' }}>{r.recipient}</strong>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => onOpenEvidence(r.commitment_id)}
+                      style={{ fontSize: '11px', padding: '2px 8px' }}
+                    >
+                      Evidence Citations
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => onOpenWhatIf(r.commitment_id)}
+                      style={{ fontSize: '11px', padding: '2px 8px' }}
+                    >
+                      <Sliders size={11} />
+                      <span>Simulate Delay</span>
+                    </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => onOpenEvidence(r.commitment_id)}
-                    style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                  >
-                    View Citations ({r.evidence?.length || 0})
-                  </button>
-                  <button
-                    className="btn-rocm"
-                    onClick={() => onOpenWhatIf(r.commitment_id)}
-                    style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                  >
-                    Simulate Delay
-                  </button>
-                </div>
-              </div>
-
-              {/* Factors Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '10px',
-                background: 'rgba(15, 23, 42, 0.6)',
-                padding: '12px 14px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                marginBottom: '16px'
-              }}>
-                {r.factors && r.factors.map((f, i) => (
-                  <div key={i}>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'capitalize' }}>
-                      {f.name.replace('_', ' ')}
-                    </div>
-                    <div style={{
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      color: f.value > 0.6 ? 'var(--risk-high)' : f.value > 0.3 ? 'var(--risk-medium)' : 'var(--risk-low)'
-                    }}>
-                      {f.value.toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                      Weight: {Math.round(f.weight * 100)}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Proposed Recommendation Mitigation Card */}
-              {r.recommendation && (
-                <div style={{
-                  padding: '14px 18px',
-                  borderRadius: '8px',
-                  background: 'rgba(56, 189, 248, 0.06)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '16px'
-                }}>
+                <div className="classic-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Title & Parties */}
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--accent-blue)', color: '#000' }}>
-                        AI MITIGATION PROPOSAL
-                      </span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                        {r.recommendation.action_type}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
-                      {r.recommendation.description}
+                    <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
+                      {r.deliverable || r.commitment_action}
+                    </h3>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Promised by <strong style={{ color: 'var(--text-main)' }}>{r.owner}</strong> to <strong style={{ color: 'var(--text-main)' }}>{r.recipient}</strong>
                     </div>
                   </div>
 
-                  <button
-                    className="btn-primary"
-                    onClick={() => onOpenApproval(r.recommendation)}
-                    style={{ flexShrink: 0, padding: '8px 14px', fontSize: '0.8rem' }}
-                  >
-                    <CheckCircle2 size={16} />
-                    <span>Review & Approve Draft</span>
-                  </button>
+                  {/* Mathematical Factor Decomposition */}
+                  {r.factors && r.factors.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                        Factor Decomposition
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${Math.min(r.factors.length, 4)}, 1fr)`,
+                        gap: '8px'
+                      }}>
+                        {r.factors.map((f, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              padding: '6px 8px',
+                              backgroundColor: 'var(--bg-subtle)',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: 'var(--radius-xs)',
+                              fontSize: '11px'
+                            }}
+                          >
+                            <div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>{f.name || f.factor_name}</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '2px' }}>
+                              <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-main)' }}>
+                                {typeof f.value === 'number' ? f.value.toFixed(2) : f.value}
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+                                wt: {typeof f.weight === 'number' ? f.weight.toFixed(2) : f.weight}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendation Box & Human Approval Gate */}
+                  {r.recommendation && (
+                    <div style={{
+                      padding: '10px 12px',
+                      backgroundColor: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-main)',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <ShieldCheck size={14} color="var(--primary-hover)" />
+                          <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-main)' }}>
+                            Human-in-the-Loop Recommendation
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+                          Target: {r.recommendation.target_person}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {r.recommendation.description}
+                      </div>
+
+                      {r.recommendation.draft_message && (
+                        <div style={{
+                          padding: '8px 10px',
+                          backgroundColor: 'var(--bg-panel)',
+                          border: '1px solid var(--border-main)',
+                          borderRadius: 'var(--radius-xs)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '11px',
+                          color: 'var(--text-main)',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          "{r.recommendation.draft_message}"
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '4px' }}>
+                        <button
+                          className="btn-primary"
+                          onClick={() => onOpenApproval(r.recommendation)}
+                          style={{ fontSize: '11px', padding: '4px 10px' }}
+                        >
+                          <Check size={12} />
+                          <span>Review & Approve Draft</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

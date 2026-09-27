@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, FileText, ArrowRight, Loader2, Check } from 'lucide-react';
+import { X, FileText, ArrowRight, Loader2, Check, Upload } from 'lucide-react';
 import { api } from '../api/client';
 
 const DEMO_TRANSCRIPT = `[Mon 10:02] Client: Can you send the revised quotation by Friday?
@@ -35,11 +35,9 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
     setStage('Initializing conversation container...');
 
     try {
-      // 1. Create conversation record
       const conv = await api.createConversation(title, 'whatsapp');
-      setStage('Running LangGraph: Extraction Agent parsing commitments...');
+      setStage('Running LangGraph: Extraction & Resolution Agents...');
 
-      // 2. Run LangGraph pipeline
       const res = await api.ingest(conv.conversation_id, rawText);
       setStage('Graph constructed, risk evaluated, mitigations synthesized!');
 
@@ -47,7 +45,7 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
         setLoading(false);
         onIngestSuccess(conv.conversation_id);
         onClose();
-      }, 500);
+      }, 400);
     } catch (err) {
       console.error(err);
       setError(err.message || 'Ingestion failed. Please check backend connection.');
@@ -59,159 +57,140 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(5, 7, 12, 0.75)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 100,
       padding: '20px'
     }}>
-      <div className="glass-panel-elevated" style={{
+      <div className="classic-panel" style={{
         width: '100%',
-        maxWidth: '640px',
-        padding: '28px',
-        position: 'relative'
+        maxWidth: '600px',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)'
       }}>
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)'
-          }}
-        >
-          <X size={20} />
-        </button>
-
-        {/* Modal Title */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <Sparkles size={20} color="var(--accent-blue)" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Ingest Conversation Transcript</h2>
+        {/* Modal Window Header */}
+        <div className="classic-panel-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Upload size={14} color="var(--primary)" />
+            <span>IMPORT CONVERSATION TRANSCRIPT</span>
           </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Upload raw WhatsApp or email export. The 5-Agent pipeline extracts commitments, builds the dependency graph, and deterministically computes cascading risk.
-          </p>
-        </div>
-
-        {/* Quick Demo Button */}
-        <div style={{
-          marginBottom: '16px',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          background: 'rgba(6, 182, 212, 0.08)',
-          border: '1px solid rgba(6, 182, 212, 0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--accent-blue)' }}>
-              Lablab.ai × AMD Demo Scenario
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Harshit ↔ Client quotation chain blocked by Amit's pricing slip
-            </div>
-          </div>
-          <button className="btn-secondary" onClick={handleLoadDemo} style={{ fontSize: '0.78rem', padding: '6px 12px' }}>
-            Fill Demo Data
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '2px'
+            }}
+          >
+            <X size={15} />
           </button>
         </div>
 
-        {/* Form Fields */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Modal Body */}
+        <div className="classic-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '6px' }}>
-              Conversation Title
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+              Autonomous 5-Agent Pipeline Ingestion
+            </div>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              Paste WhatsApp or Email transcripts. The engine parses commitments, cross-person dependencies, and computes deterministic cascading risk.
+            </p>
+          </div>
+
+          {/* Quick Demo Template Box */}
+          <div style={{
+            padding: '8px 12px',
+            backgroundColor: 'var(--bg-subtle)',
+            border: '1px solid var(--border-main)',
+            borderRadius: 'var(--radius-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-main)' }}>
+                Demo Benchmark Scenario
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                Client &harr; Harshit quotation blocked by Amit's pricing delay
+              </div>
+            </div>
+            <button className="btn-secondary" onClick={handleLoadDemo} style={{ fontSize: '11px', padding: '2px 8px' }}>
+              Load Demo Thread
+            </button>
+          </div>
+
+          {/* Form Fields */}
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+              CONVERSATION TITLE:
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-main)',
-                fontSize: '0.9rem',
-                outline: 'none'
-              }}
+              style={{ width: '100%' }}
+              disabled={loading}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '6px' }}>
-              Raw Messages (WhatsApp / Email format)
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+              RAW TRANSCRIPT MESSAGES:
             </label>
             <textarea
-              rows={8}
+              rows={7}
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               placeholder="[Mon 10:02] Client: Can you send the revised quotation by Friday?..."
               style={{
                 width: '100%',
-                padding: '12px 14px',
-                borderRadius: '8px',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem',
-                fontFamily: 'monospace',
-                outline: 'none',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
                 resize: 'vertical'
               }}
+              disabled={loading}
             />
           </div>
-        </div>
 
-        {/* Error notice */}
-        {error && (
+          {/* Error Notice */}
+          {error && (
+            <div style={{
+              padding: '8px 12px',
+              backgroundColor: 'var(--risk-high-bg)',
+              border: '1px solid var(--risk-high-border)',
+              borderRadius: 'var(--radius-xs)',
+              color: 'var(--risk-high)',
+              fontSize: '11px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* Status & Footer Actions */}
           <div style={{
-            marginTop: '14px',
-            padding: '10px 14px',
-            borderRadius: '6px',
-            background: 'var(--risk-high-bg)',
-            border: '1px solid rgba(244, 63, 94, 0.4)',
-            color: '#fb7185',
-            fontSize: '0.82rem'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: '6px',
+            borderTop: '1px solid var(--border-subtle)'
           }}>
-            {error}
-          </div>
-        )}
+            <div style={{ fontSize: '11px', color: 'var(--rocm-accent)', fontFamily: 'var(--font-mono)' }}>
+              {loading ? stage : 'AMD ROCm Accelerated'}
+            </div>
 
-        {/* Footer Actions */}
-        <div style={{
-          marginTop: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--accent-rocm)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {loading ? (
-              <>
-                <Loader2 size={16} className="pulse-alert" />
-                <span>{stage}</span>
-              </>
-            ) : (
-              <span>⚡ AMD ROCm acceleration ready</span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-secondary" onClick={onClose} disabled={loading}>
-              Cancel
-            </button>
-            <button className="btn-primary" onClick={handleIngest} disabled={loading}>
-              {loading ? <Loader2 size={16} className="pulse-alert" /> : <ArrowRight size={16} />}
-              <span>{loading ? 'Processing...' : 'Run Pipeline'}</span>
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-secondary" onClick={onClose} disabled={loading}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleIngest} disabled={loading}>
+                {loading ? <Loader2 size={13} className="spin" /> : <ArrowRight size={13} />}
+                <span>{loading ? 'Processing...' : 'Run Pipeline'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

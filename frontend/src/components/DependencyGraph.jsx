@@ -8,126 +8,109 @@ import {
 } from '@xyflow/react';
 import { User, AlertCircle, Clock, ShieldAlert, ArrowRight } from 'lucide-react';
 
-// Custom Node for Commitments
+// Custom Classic Node for Commitments (Structured like a classic workflow/database entity)
 function CommitmentNode({ data }) {
   const isHigh = data.risk_level === 'HIGH';
   const isMed = data.risk_level === 'MEDIUM';
 
-  const glowClass = isHigh ? 'glow-high pulse-alert' : isMed ? 'glow-medium' : 'glow-low';
-  const badgeColor = isHigh ? 'var(--risk-high)' : isMed ? 'var(--risk-medium)' : 'var(--risk-low)';
-  const badgeBg = isHigh ? 'var(--risk-high-bg)' : isMed ? 'var(--risk-medium-bg)' : 'var(--risk-low-bg)';
+  const badgeClass = isHigh ? 'badge-risk-high' : isMed ? 'badge-risk-medium' : 'badge-risk-low';
+  const borderColor = isHigh ? 'var(--risk-high-border)' : isMed ? 'var(--risk-medium-border)' : 'var(--border-main)';
 
   return (
-    <div className={`glass-panel ${glowClass}`} style={{
-      padding: '16px',
-      width: '280px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      borderWidth: '2px'
+    <div style={{
+      width: '260px',
+      backgroundColor: 'var(--bg-panel)',
+      border: `1px solid ${borderColor}`,
+      borderRadius: 'var(--radius-sm)',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+      overflow: 'hidden',
+      cursor: 'pointer'
     }}>
-      <Handle type="target" position={Position.Top} style={{ background: '#38bdf8', width: 8, height: 8 }} />
-      <Handle type="target" position={Position.Left} id="left" style={{ background: '#38bdf8', width: 8, height: 8 }} />
+      <Handle type="target" position={Position.Top} style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="target" position={Position.Left} id="left" style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
 
-      {/* Top Header: Deliverable & Risk Badge */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <div style={{ fontSize: '0.92rem', fontWeight: '700', color: 'var(--text-main)', lineHeight: 1.2 }}>
-          {data.deliverable || data.label}
-        </div>
-        <span style={{
-          fontSize: '0.65rem',
-          fontWeight: 700,
-          padding: '2px 6px',
-          borderRadius: '4px',
-          color: badgeColor,
-          background: badgeBg,
-          border: `1px solid ${badgeColor}`,
-          whiteSpace: 'nowrap'
-        }}>
-          {data.risk_level} ({data.risk_score ? data.risk_score.toFixed(2) : '0.00'})
-        </span>
-      </div>
-
-      {/* Owner -> Recipient */}
-      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <User size={12} color="var(--accent-blue)" />
-        <span><strong>{data.owner}</strong> &rarr; {data.recipient}</span>
-      </div>
-
-      {/* Deadline & Status */}
+      {/* Node Header */}
       <div style={{
+        padding: '6px 10px',
+        backgroundColor: 'var(--bg-subtle)',
+        borderBottom: '1px solid var(--border-main)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        fontSize: '0.72rem',
-        paddingTop: '6px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        color: 'var(--text-dim)'
+        gap: '6px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Clock size={12} />
-          <span>Due: <strong>{data.deadline || 'Unspecified'}</strong></span>
+        <div style={{
+          fontSize: '12px',
+          fontWeight: 600,
+          color: 'var(--text-main)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {data.deliverable || data.label}
         </div>
-        <span style={{ color: 'var(--accent-cyan)' }}>
-          {Math.round((data.confidence || 0.9) * 100)}% conf
+        <span className={`badge-classic ${badgeClass}`} style={{ flexShrink: 0 }}>
+          {data.risk_level || 'LOW'}
         </span>
       </div>
 
-      <div style={{
-        marginTop: '8px',
-        fontSize: '0.68rem',
-        textAlign: 'center',
-        color: 'var(--text-dim)',
-        background: 'rgba(0,0,0,0.2)',
-        padding: '3px',
-        borderRadius: '4px'
-      }}>
-        Click node to inspect evidence
+      {/* Node Body */}
+      <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          <strong style={{ color: 'var(--text-main)' }}>{data.owner}</strong> &rarr; {data.recipient}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-dim)', paddingTop: '4px', borderTop: '1px solid var(--border-subtle)' }}>
+          <span>Due: <strong>{data.deadline || 'Unspecified'}</strong></span>
+          <span style={{ fontFamily: 'var(--font-mono)' }}>{Math.round((data.confidence || 0.85) * 100)}% conf</span>
+        </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} style={{ background: '#38bdf8', width: 8, height: 8 }} />
-      <Handle type="source" position={Position.Right} id="right" style={{ background: '#38bdf8', width: 8, height: 8 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="source" position={Position.Right} id="right" style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
     </div>
   );
 }
 
-// Custom Node for People
+// Custom Classic Node for People
 function PersonNode({ data }) {
   const isClient = data.role && data.role.toLowerCase().includes('client');
 
   return (
-    <div className="glass-panel" style={{
-      padding: '12px 18px',
-      borderRadius: '24px',
+    <div style={{
+      padding: '6px 12px',
+      backgroundColor: 'var(--bg-subtle)',
+      border: `1px solid ${isClient ? 'var(--risk-medium-border)' : 'var(--border-main)'}`,
+      borderRadius: 'var(--radius-sm)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      border: isClient ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-color)',
-      background: isClient ? 'rgba(245, 158, 11, 0.08)' : 'rgba(15, 23, 42, 0.85)'
+      gap: '8px'
     }}>
-      <Handle type="target" position={Position.Left} style={{ background: '#818cf8', width: 6, height: 6 }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#8b949e', width: 6, height: 6, borderRadius: 2 }} />
       <div style={{
-        width: '28px',
-        height: '28px',
-        borderRadius: '50%',
-        background: isClient ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+        width: '20px',
+        height: '20px',
+        borderRadius: 'var(--radius-xs)',
+        backgroundColor: isClient ? 'var(--risk-medium-bg)' : 'var(--bg-hover)',
+        border: `1px solid ${isClient ? 'var(--risk-medium-border)' : 'var(--border-main)'}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 'bold',
-        fontSize: '0.8rem',
-        color: '#ffffff'
+        fontWeight: 700,
+        fontSize: '10px',
+        color: isClient ? 'var(--risk-medium)' : 'var(--text-main)'
       }}>
         {data.label.charAt(0)}
       </div>
       <div>
-        <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
           {data.label}
         </div>
-        <div style={{ fontSize: '0.68rem', color: isClient ? 'var(--risk-medium)' : 'var(--text-dim)' }}>
-          {data.role || 'Member'}
+        <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+          {data.role || 'Participant'}
         </div>
       </div>
-      <Handle type="source" position={Position.Right} style={{ background: '#818cf8', width: 6, height: 6 }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#8b949e', width: 6, height: 6, borderRadius: 2 }} />
     </div>
   );
 }
@@ -147,22 +130,22 @@ export default function DependencyGraph({ graphData, onSelectCommitment }) {
   if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
     return (
       <div style={{
-        height: '540px',
+        height: '520px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         color: 'var(--text-dim)',
-        gap: '12px'
+        gap: '10px'
       }}>
-        <ShieldAlert size={36} color="var(--text-dim)" />
-        <p style={{ fontSize: '0.9rem' }}>No graph data loaded. Upload a chat export to build the commitment graph.</p>
+        <ShieldAlert size={32} color="var(--text-dim)" />
+        <p style={{ fontSize: '12px' }}>No graph data loaded. Upload a chat export to construct the commitment graph.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ width: '100%', height: '580px', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '540px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
       <ReactFlow
         nodes={graphData.nodes}
         edges={graphData.edges}
@@ -171,7 +154,7 @@ export default function DependencyGraph({ graphData, onSelectCommitment }) {
         fitView
         fitViewOptions={{ padding: 0.25 }}
       >
-        <Background color="#1e293b" gap={20} size={1} />
+        <Background color="#21262d" gap={16} size={1} />
         <Controls />
       </ReactFlow>
     </div>

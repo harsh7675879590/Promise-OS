@@ -5,10 +5,11 @@ import {
   AlertTriangle, 
   Sliders, 
   Cpu, 
-  CheckCircle, 
-  UploadCloud, 
+  Upload, 
   ListChecks, 
-  Layers 
+  LayoutDashboard,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -19,7 +20,7 @@ export default function Navbar({
   activeConversation 
 }) {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Layers },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'commitments', label: 'Commitments', icon: ListChecks },
     { id: 'graph', label: 'Dependency Graph', icon: Network },
     { id: 'risks', label: 'Risk Center', icon: AlertTriangle },
@@ -28,38 +29,93 @@ export default function Navbar({
   ];
 
   return (
-    <header className="glass-panel" style={{ margin: '16px 24px', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }}>
-      {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '10px',
-          background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)'
-        }}>
-          <GitFork size={22} color="#ffffff" />
-        </div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: '700', letterSpacing: '-0.02em', background: 'linear-gradient(to right, #ffffff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+    <header style={{
+      width: '100%',
+      backgroundColor: 'var(--bg-panel)',
+      borderBottom: '1px solid var(--border-main)',
+      display: 'flex',
+      flexDirection: 'column',
+      zIndex: 50
+    }}>
+      {/* Top Utility Bar */}
+      <div style={{
+        padding: '8px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid var(--border-subtle)'
+      }}>
+        {/* Brand & Subtitle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '26px',
+            height: '26px',
+            backgroundColor: 'var(--primary)',
+            borderRadius: 'var(--radius-sm)',
+            color: '#ffffff'
+          }}>
+            <GitFork size={16} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
               PromiseOS
-            </h1>
-            <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(217, 70, 239, 0.15)', color: '#d946ef', border: '1px solid rgba(217, 70, 239, 0.3)', fontWeight: 600 }}>
-              AMD ROCm Edition
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)', borderLeft: '1px solid var(--border-main)', paddingLeft: '8px' }}>
+              Autonomous Commitment Graph & Risk Cascade Engine
             </span>
           </div>
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-            The graph that knows whose promise is about to break yours
-          </p>
+        </div>
+
+        {/* Right actions: Thread info + System status + Ingest Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {activeConversation && (
+            <span style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--border-main)',
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-xs)'
+            }}>
+              Thread: {activeConversation.title || activeConversation.id.slice(0, 8)}
+            </span>
+          )}
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontFamily: 'var(--font-mono)',
+            color: backendOnline ? 'var(--risk-low)' : 'var(--risk-high)',
+            backgroundColor: backendOnline ? 'var(--risk-low-bg)' : 'var(--risk-high-bg)',
+            border: `1px solid ${backendOnline ? 'var(--risk-low-border)' : 'var(--risk-high-border)'}`,
+            padding: '2px 8px',
+            borderRadius: 'var(--radius-xs)'
+          }}>
+            {backendOnline ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+            <span>{backendOnline ? 'API Connected' : 'API Offline'}</span>
+          </div>
+
+          <button className="btn-primary" onClick={onOpenIngest}>
+            <Upload size={13} />
+            <span>Import Transcript</span>
+          </button>
         </div>
       </div>
 
-      {/* Navigation tabs */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      {/* Classic Horizontal Tab Strip */}
+      <nav style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 20px',
+        backgroundColor: 'var(--bg-panel)',
+        gap: '2px'
+      }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
@@ -70,29 +126,23 @@ export default function Navbar({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 padding: '8px 14px',
-                borderRadius: '8px',
                 border: 'none',
-                background: isActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
-                color: isActive ? 'var(--accent-blue)' : 'var(--text-muted)',
-                fontWeight: isActive ? '600' : '400',
-                fontSize: '0.85rem',
-                borderBottom: isActive ? '2px solid var(--accent-blue)' : '2px solid transparent',
-                position: 'relative'
+                borderRadius: '0',
+                backgroundColor: 'transparent',
+                color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
+                fontWeight: isActive ? 600 : 400,
+                fontSize: '12px',
+                borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'color 0.15s ease'
               }}
             >
-              <Icon size={16} />
+              <Icon size={14} color={isActive ? 'var(--primary-hover)' : 'var(--text-dim)'} />
               <span>{item.label}</span>
               {item.badge && (
-                <span style={{
-                  fontSize: '0.6rem',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  background: 'linear-gradient(135deg, #d946ef, #8b5cf6)',
-                  color: 'white',
-                  fontWeight: 700
-                }}>
+                <span className="badge-classic badge-rocm" style={{ fontSize: '9px', padding: '1px 4px' }}>
                   {item.badge}
                 </span>
               )}
@@ -100,37 +150,6 @@ export default function Navbar({
           );
         })}
       </nav>
-
-      {/* Right Action buttons */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* Status Pill */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '6px 12px',
-          borderRadius: '20px',
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid var(--border-color)',
-          fontSize: '0.75rem',
-          color: backendOnline ? 'var(--risk-low)' : 'var(--risk-high)'
-        }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: backendOnline ? 'var(--risk-low)' : 'var(--risk-high)',
-            boxShadow: backendOnline ? '0 0 8px var(--risk-low)' : '0 0 8px var(--risk-high)'
-          }} />
-          <span>{backendOnline ? 'vLLM ROCm Online' : 'Connecting...'}</span>
-        </div>
-
-        {/* Load / Ingest Button */}
-        <button className="btn-primary" onClick={onOpenIngest}>
-          <UploadCloud size={16} />
-          <span>Upload / Ingest</span>
-        </button>
-      </div>
     </header>
   );
 }

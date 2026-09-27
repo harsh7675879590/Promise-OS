@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldAlert, Check, Copy, AlertCircle, Send } from 'lucide-react';
+import { X, ShieldAlert, Check, Copy, AlertCircle, ShieldCheck } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function ApprovalModal({ isOpen, onClose, recommendation, onApproved }) {
@@ -19,14 +19,14 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
     setSubmitting(true);
     try {
       await api.approveRecommendation(recommendation.id, 'lead_user');
-      setStatusMessage('Mitigation approved! The follow-up draft has been locked and copied to your clipboard.');
+      setStatusMessage('Mitigation approved! The follow-up draft has been confirmed and copied to clipboard.');
       navigator.clipboard.writeText(recommendation.draft_message);
       setCopied(true);
       if (onApproved) onApproved(recommendation.id);
       setTimeout(() => {
         setSubmitting(false);
         onClose();
-      }, 1500);
+      }, 1200);
     } catch (err) {
       console.error(err);
       setStatusMessage('Approval failed to record on server.');
@@ -51,178 +51,158 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(5, 7, 12, 0.75)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 100,
       padding: '20px'
     }}>
-      <div className="glass-panel-elevated" style={{
+      <div className="classic-panel" style={{
         width: '100%',
-        maxWidth: '580px',
-        padding: '28px',
-        position: 'relative'
+        maxWidth: '560px',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)'
       }}>
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)'
-          }}
-        >
-          <X size={20} />
-        </button>
-
-        {/* Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: 'rgba(245, 158, 11, 0.15)',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <ShieldAlert size={18} color="var(--risk-medium)" />
+        {/* Title Bar */}
+        <div className="classic-panel-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldCheck size={14} color="var(--primary)" />
+            <span>HUMAN-IN-THE-LOOP APPROVAL GATE</span>
           </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '2px'
+            }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="classic-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Human-in-the-Loop Review</h2>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-              PromiseOS Safety Gate: Autonomous agents never auto-dispatch external communications.
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+              Safety Gate: Autonomous dispatch is strictly prohibited
+            </div>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              The system synthesizes mitigations, but requires explicit human approval before any action is confirmed or dispatched.
+            </p>
+          </div>
+
+          {/* Target & Action Metadata */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+            padding: '8px 12px',
+            backgroundColor: 'var(--bg-subtle)',
+            border: '1px solid var(--border-main)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '11px'
+          }}>
+            <div>
+              <span style={{ color: 'var(--text-dim)' }}>ACTION TYPE: </span>
+              <strong style={{ color: 'var(--text-main)', textTransform: 'uppercase' }}>
+                {recommendation.action_type || 'FOLLOW_UP'}
+              </strong>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-dim)' }}>TARGET PERSON: </span>
+              <strong style={{ color: 'var(--text-main)' }}>
+                {recommendation.target_person || 'Participant'}
+              </strong>
             </div>
           </div>
-        </div>
 
-        {/* Action Type & Description */}
-        <div style={{
-          marginTop: '16px',
-          padding: '14px',
-          borderRadius: '8px',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid var(--border-color)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Action Strategy
-            </span>
-            <span style={{
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '4px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              color: 'var(--accent-blue)',
-              textTransform: 'uppercase'
+          {/* Description */}
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '4px', textTransform: 'uppercase' }}>
+              Agent Rationale:
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-main)' }}>
+              {recommendation.description}
+            </div>
+          </div>
+
+          {/* Draft Message Preview */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Proposed Message:
+              </span>
+              <button
+                className="btn-secondary"
+                onClick={handleCopy}
+                style={{ fontSize: '10px', padding: '1px 6px' }}
+              >
+                {copied ? <Check size={11} color="var(--risk-low)" /> : <Copy size={11} />}
+                <span>{copied ? 'Copied' : 'Copy Text'}</span>
+              </button>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--border-main)',
+              borderRadius: 'var(--radius-xs)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              color: 'var(--text-main)',
+              whiteSpace: 'pre-wrap'
             }}>
-              {recommendation.action_type || 'FOLLOW_UP'}
-            </span>
-          </div>
-          <div style={{ fontSize: '0.88rem', color: 'var(--text-main)', fontWeight: 500 }}>
-            {recommendation.description}
-          </div>
-        </div>
-
-        {/* Draft Message */}
-        <div style={{ marginTop: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-              Drafted Follow-up Message (Target: {recommendation.target_person_name || 'Stakeholder'})
-            </label>
-            <button
-              onClick={handleCopy}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: copied ? 'var(--risk-low)' : 'var(--accent-blue)',
-                fontSize: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copied ? 'Copied!' : 'Copy'}</span>
-            </button>
+              "{recommendation.draft_message}"
+            </div>
           </div>
 
+          {/* Status Message */}
+          {statusMessage && (
+            <div style={{
+              padding: '8px 12px',
+              backgroundColor: 'var(--risk-low-bg)',
+              border: '1px solid var(--risk-low-border)',
+              borderRadius: 'var(--radius-xs)',
+              color: 'var(--risk-low)',
+              fontSize: '11px'
+            }}>
+              {statusMessage}
+            </div>
+          )}
+
+          {/* Footer Actions */}
           <div style={{
-            padding: '14px',
-            borderRadius: '8px',
-            background: 'rgba(10, 15, 26, 0.95)',
-            border: '1px solid #334155',
-            color: '#e2e8f0',
-            fontSize: '0.88rem',
-            lineHeight: 1.5,
-            fontFamily: 'system-ui',
-            whiteSpace: 'pre-wrap'
-          }}>
-            {recommendation.draft_message}
-          </div>
-        </div>
-
-        {/* Safety Disclaimer Banner */}
-        <div style={{
-          marginTop: '16px',
-          padding: '10px 14px',
-          borderRadius: '6px',
-          background: 'rgba(56, 189, 248, 0.05)',
-          border: '1px solid rgba(56, 189, 248, 0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontSize: '0.75rem',
-          color: 'var(--accent-blue)'
-        }}>
-          <AlertCircle size={16} style={{ flexShrink: 0 }} />
-          <span>
-            Clicking "Approve & Draft" saves the approval in the immutable audit log and copies the text. No message is sent to external chats.
-          </span>
-        </div>
-
-        {statusMessage && (
-          <div style={{
-            marginTop: '12px',
-            padding: '10px 14px',
-            borderRadius: '6px',
-            background: 'var(--risk-low-bg)',
-            border: '1px solid rgba(16, 185, 129, 0.4)',
-            color: 'var(--risk-low)',
-            fontSize: '0.82rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'space-between',
+            paddingTop: '6px',
+            borderTop: '1px solid var(--border-subtle)'
           }}>
-            <Check size={16} />
-            <span>{statusMessage}</span>
-          </div>
-        )}
+            <button
+              className="btn-danger"
+              onClick={handleDismiss}
+              disabled={submitting}
+              style={{ fontSize: '11px', padding: '4px 10px' }}
+            >
+              Dismiss Recommendation
+            </button>
 
-        {/* Action Buttons */}
-        <div style={{
-          marginTop: '20px',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '12px'
-        }}>
-          <button className="btn-secondary" onClick={handleDismiss} disabled={submitting}>
-            Dismiss
-          </button>
-          <button className="btn-primary" onClick={handleApprove} disabled={submitting}>
-            <Check size={16} />
-            <span>Approve & Draft Follow-up</span>
-          </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-secondary" onClick={onClose} disabled={submitting}>
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleApprove}
+                disabled={submitting}
+              >
+                <Check size={13} />
+                <span>Approve & Copy Draft</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

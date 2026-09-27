@@ -134,32 +134,24 @@ export default function App() {
       {/* Backend Offline Banner */}
       {!backendOnline && (
         <div style={{
-          margin: '0 24px 16px 24px',
-          padding: '12px 20px',
-          borderRadius: '8px',
-          background: 'rgba(244, 63, 94, 0.15)',
-          border: '1px solid rgba(244, 63, 94, 0.4)',
+          margin: '12px 20px 0 20px',
+          padding: '8px 16px',
+          borderRadius: 'var(--radius-sm)',
+          backgroundColor: 'var(--risk-high-bg)',
+          border: '1px solid var(--risk-high-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          color: '#fb7185',
-          fontSize: '0.85rem'
+          color: 'var(--risk-high)',
+          fontSize: '12px'
         }}>
           <div>
-            <strong>FastAPI Backend is currently connecting...</strong> Make sure the backend server is running on <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px' }}>http://127.0.0.1:8000</code>.
+            <strong>FastAPI Backend Offline:</strong> Unable to connect to <code style={{ backgroundColor: 'var(--bg-app)', padding: '2px 5px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-main)', fontFamily: 'var(--font-mono)' }}>http://127.0.0.1:8000</code>. Verify that the Uvicorn service is running.
           </div>
           <button
             onClick={checkHealthAndInit}
-            style={{
-              background: 'rgba(244, 63, 94, 0.25)',
-              border: '1px solid rgba(244, 63, 94, 0.5)',
-              color: '#fff',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-              fontWeight: 600
-            }}
+            className="btn-danger"
+            style={{ fontSize: '11px', padding: '3px 10px' }}
           >
             Retry Connection
           </button>
@@ -167,7 +159,7 @@ export default function App() {
       )}
 
       {/* Main Content Viewport */}
-      <main style={{ flex: 1, padding: '0 24px 32px 24px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
+      <main style={{ flex: 1, padding: '20px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
         {currentTab === 'dashboard' && (
           <Dashboard
             commitments={commitments}
