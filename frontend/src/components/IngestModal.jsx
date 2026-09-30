@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, FileText, ArrowRight, Loader2, Check, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, FileText, ArrowRight, Loader2, Check, Upload, Sparkles, Cpu } from 'lucide-react';
 import { api } from '../api/client';
 
 const DEMO_TRANSCRIPT = `[Mon 10:02] Client: Can you send the revised quotation by Friday?
@@ -15,6 +15,17 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState('');
   const [error, setError] = useState(null);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen && !loading) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, loading, onClose]);
 
   if (!isOpen) return null;
 
@@ -36,10 +47,10 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
 
     try {
       const conv = await api.createConversation(title, 'whatsapp');
-      setStage('Running LangGraph: Extraction & Resolution Agents...');
+      setStage('Running Extraction & Entity Resolution Agents...');
 
       const res = await api.ingest(conv.conversation_id, rawText);
-      setStage('Graph constructed, risk evaluated, mitigations synthesized!');
+      setStage('Constructing graph & evaluating cascade risks...');
 
       setTimeout(() => {
         setLoading(false);
@@ -54,49 +65,32 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 100,
-      padding: '20px'
-    }}>
-      <div className="classic-panel" style={{
-        width: '100%',
-        maxWidth: '600px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)'
-      }}>
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !loading) onClose(); }}>
+      <div className="modal-window" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         {/* Modal Window Header */}
-        <div className="classic-panel-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Upload size={14} color="var(--primary)" />
-            <span>IMPORT CONVERSATION TRANSCRIPT</span>
+        <div className="panel-header">
+          <div className="flex-row-gap-2">
+            <Upload size={14} color="var(--accent)" />
+            <span id="modal-title" className="panel-header-title">Import Conversation Transcript</span>
           </div>
           <button
+            className="btn-icon"
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '2px'
-            }}
+            disabled={loading}
+            aria-label="Close modal"
           >
             <X size={15} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="classic-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="panel-body flex-col-gap-3">
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+            <h2 className="heading-sm">
               Autonomous 5-Agent Pipeline Ingestion
-            </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Paste WhatsApp or Email transcripts. The engine parses commitments, cross-person dependencies, and computes deterministic cascading risk.
+            </h2>
+            <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              Paste WhatsApp or Email transcripts. The multi-agent engine parses commitments, cross-person dependencies, and computes deterministic cascading risk.
             </p>
           </div>
 
@@ -108,46 +102,43 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
             borderRadius: 'var(--radius-sm)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            gap: '8px'
           }}>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-main)' }}>
-                Demo Benchmark Scenario
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Sample Benchmark Scenario
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>
                 Client &harr; Harshit quotation blocked by Amit's pricing delay
               </div>
             </div>
-            <button className="btn-secondary" onClick={handleLoadDemo} style={{ fontSize: '11px', padding: '2px 8px' }}>
-              Load Demo Thread
+            <button className="btn-secondary" onClick={handleLoadDemo} style={{ fontSize: '11px', padding: '3px 8px' }}>
+              Load Sample
             </button>
           </div>
 
           {/* Form Fields */}
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-              CONVERSATION TITLE:
-            </label>
+            <label className="field-label" htmlFor="thread-title">Conversation Title:</label>
             <input
+              id="thread-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              style={{ width: '100%' }}
               disabled={loading}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-              RAW TRANSCRIPT MESSAGES:
-            </label>
+            <label className="field-label" htmlFor="raw-transcript">Raw Transcript Messages:</label>
             <textarea
-              rows={7}
+              id="raw-transcript"
+              rows={6}
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               placeholder="[Mon 10:02] Client: Can you send the revised quotation by Friday?..."
               style={{
-                width: '100%',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '11px',
                 resize: 'vertical'
@@ -158,15 +149,8 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
 
           {/* Error Notice */}
           {error && (
-            <div style={{
-              padding: '8px 12px',
-              backgroundColor: 'var(--risk-high-bg)',
-              border: '1px solid var(--risk-high-border)',
-              borderRadius: 'var(--radius-xs)',
-              color: 'var(--risk-high)',
-              fontSize: '11px'
-            }}>
-              {error}
+            <div className="error-inline">
+              <span>{error}</span>
             </div>
           )}
 
@@ -175,11 +159,22 @@ export default function IngestModal({ isOpen, onClose, onIngestSuccess }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingTop: '6px',
-            borderTop: '1px solid var(--border-subtle)'
+            paddingTop: '8px',
+            borderTop: '1px solid var(--border-subtle)',
+            marginTop: '4px'
           }}>
-            <div style={{ fontSize: '11px', color: 'var(--rocm-accent)', fontFamily: 'var(--font-mono)' }}>
-              {loading ? stage : 'AMD ROCm Accelerated'}
+            <div className="data-value" style={{ fontSize: '11px', color: loading ? 'var(--accent)' : 'var(--rocm)' }}>
+              {loading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Loader2 size={12} className="spin" />
+                  <span>{stage}</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Cpu size={12} />
+                  <span>AMD ROCm Accelerated</span>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>

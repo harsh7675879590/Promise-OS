@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, ShieldCheck, AlertTriangle, Clock, MessageSquare, ArrowRight, User, Sliders } from 'lucide-react';
 
 export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, riskAssessment, onOpenWhatIf }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !commitment) return null;
 
   const score = riskAssessment ? (typeof riskAssessment.score === 'number' ? riskAssessment.score.toFixed(3) : riskAssessment.score) : '0.000';
@@ -9,47 +19,26 @@ export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, 
 
   const isHigh = level === 'HIGH';
   const isMed = level === 'MEDIUM';
-  const badgeClass = isHigh ? 'badge-risk-high' : isMed ? 'badge-risk-medium' : 'badge-risk-low';
+  const badgeClass = isHigh ? 'badge-high' : isMed ? 'badge-medium' : 'badge-low';
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.65)',
-      display: 'flex',
-      justifyContent: 'flex-end',
-      zIndex: 90
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '500px',
-        height: '100%',
-        backgroundColor: 'var(--bg-panel)',
-        borderLeft: '1px solid var(--border-main)',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '-4px 0 16px rgba(0, 0, 0, 0.6)'
-      }}>
+    <div className="drawer-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="drawer-window" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
         {/* Drawer Header */}
-        <div className="classic-panel-header" style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className={`badge-classic ${badgeClass}`}>
+        <div className="panel-header" style={{ padding: '10px 16px' }}>
+          <div className="flex-row-gap-2">
+            <span className={`badge ${badgeClass}`}>
               {level} RISK ({score})
             </span>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+            <span className="data-value" style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
               ID: {commitment.id.slice(0, 8)}
             </span>
           </div>
 
           <button
+            className="btn-icon"
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '2px'
-            }}
+            aria-label="Close drawer"
           >
             <X size={15} />
           </button>
@@ -61,15 +50,15 @@ export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, 
           borderBottom: '1px solid var(--border-main)',
           backgroundColor: 'var(--bg-subtle)'
         }}>
-          <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.4 }}>
+          <h2 id="drawer-title" className="heading-sm" style={{ lineHeight: 1.4 }}>
             {commitment.deliverable_text || commitment.action_text}
           </h2>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Promised by <strong style={{ color: 'var(--text-main)' }}>{commitment.owner_name}</strong> to <strong style={{ color: 'var(--text-main)' }}>{commitment.recipient_name}</strong>
+          <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            Promised by <strong style={{ color: 'var(--text-primary)' }}>{commitment.owner_name}</strong> to <strong style={{ color: 'var(--text-primary)' }}>{commitment.recipient_name}</strong>
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', display: 'flex', gap: '16px' }}>
-            <span>Due: <strong>{commitment.deadline_raw || 'Unspecified'}</strong></span>
-            <span>Confidence: <strong>{Math.round((commitment.confidence || 0.85) * 100)}%</strong></span>
+          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px', display: 'flex', gap: '16px' }}>
+            <span>Due: <strong style={{ color: 'var(--text-secondary)' }}>{commitment.deadline_raw || 'Unspecified'}</strong></span>
+            <span>Confidence: <strong style={{ color: 'var(--text-secondary)' }}>{Math.round((commitment.confidence || 0.85) * 100)}%</strong></span>
           </div>
         </div>
 
@@ -77,19 +66,19 @@ export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Section 1: Deterministic Risk Formula Breakdown */}
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '8px' }}>
+            <span className="label-caps" style={{ display: 'block', marginBottom: '8px' }}>
               Deterministic Factor Breakdown (Section 10 Formula)
-            </div>
+            </span>
             
             {riskAssessment && riskAssessment.factors_json && riskAssessment.factors_json.length > 0 ? (
-              <div className="classic-table-container">
-                <table className="classic-table">
+              <div className="table-container" style={{ border: '1px solid var(--border-main)' }}>
+                <table className="data-table">
                   <thead>
                     <tr>
                       <th>Factor</th>
                       <th>Value</th>
                       <th>Weight</th>
-                      <th>Weighted Contribution</th>
+                      <th>Contribution</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -101,9 +90,9 @@ export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, 
                       return (
                         <tr key={idx}>
                           <td style={{ fontWeight: 600 }}>{f.name || f.factor_name}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)' }}>{val.toFixed(2)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>{wt.toFixed(2)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-main)' }}>
+                          <td className="data-value">{val.toFixed(2)}</td>
+                          <td className="data-value" style={{ color: 'var(--text-tertiary)' }}>{wt.toFixed(2)}</td>
+                          <td className="data-value" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                             {cont.toFixed(3)}
                           </td>
                         </tr>
@@ -113,48 +102,46 @@ export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, 
                 </table>
               </div>
             ) : (
-              <div style={{ padding: '12px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', fontSize: '11px', color: 'var(--text-muted)' }}>
-                Base score: {score} (Computed from temporal proximity & adjacency graph).
+              <div style={{ padding: '12px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                Base score: <span className="data-value">{score}</span> (Synthesized from temporal proximity &amp; adjacency graph).
               </div>
             )}
           </div>
 
-          {/* Section 2: Grounded Evidence Citations (Anti-Hallucination) */}
+          {/* Section 2: Grounded Evidence Citations */}
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '8px' }}>
+            <span className="label-caps" style={{ display: 'block', marginBottom: '8px' }}>
               Observable Chat Evidence Citations
-            </div>
+            </span>
 
             {evidence && evidence.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {evidence.map((ev) => (
                   <div
                     key={ev.id}
+                    className="panel-raised"
                     style={{
                       padding: '10px 12px',
-                      backgroundColor: 'var(--bg-subtle)',
-                      border: '1px solid var(--border-main)',
-                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '4px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span className="badge-classic badge-neutral">
+                    <div className="flex-between">
+                      <span className="badge badge-neutral">
                         Source Anchor: {ev.source_message_id ? `Msg #${ev.source_message_id.slice(0, 6)}` : `Commitment #${ev.source_commitment_id?.slice(0, 6)}`}
                       </span>
-                      <ShieldCheck size={13} color="var(--risk-low)" />
+                      <ShieldCheck size={14} color="var(--risk-low)" />
                     </div>
 
-                    <div style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginTop: '4px' }}>
                       {ev.description}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '12px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '12px', backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
                 Anchor citation verified from source message ID: <code>{commitment.source_message_id || 'synthetic_thread'}</code>
               </div>
             )}
@@ -182,7 +169,7 @@ export default function EvidenceDrawer({ isOpen, onClose, commitment, evidence, 
             }}
           >
             <Sliders size={13} />
-            <span>Simulate Delay on this Item</span>
+            <span>Simulate Delay</span>
           </button>
         </div>
       </div>

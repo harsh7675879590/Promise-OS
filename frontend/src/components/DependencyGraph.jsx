@@ -6,32 +6,33 @@ import {
   Handle, 
   Position 
 } from '@xyflow/react';
-import { User, AlertCircle, Clock, ShieldAlert, ArrowRight } from 'lucide-react';
+import { User, AlertCircle, Clock, ShieldAlert, ArrowRight, Network } from 'lucide-react';
 
-// Custom Classic Node for Commitments (Structured like a classic workflow/database entity)
+// Custom Enterprise Node for Commitments
 function CommitmentNode({ data }) {
   const isHigh = data.risk_level === 'HIGH';
   const isMed = data.risk_level === 'MEDIUM';
 
-  const badgeClass = isHigh ? 'badge-risk-high' : isMed ? 'badge-risk-medium' : 'badge-risk-low';
+  const badgeClass = isHigh ? 'badge-high' : isMed ? 'badge-medium' : 'badge-low';
   const borderColor = isHigh ? 'var(--risk-high-border)' : isMed ? 'var(--risk-medium-border)' : 'var(--border-main)';
 
   return (
     <div style={{
-      width: '260px',
+      width: '270px',
       backgroundColor: 'var(--bg-panel)',
       border: `1px solid ${borderColor}`,
       borderRadius: 'var(--radius-sm)',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.45)',
       overflow: 'hidden',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      transition: 'border-color var(--transition-fast), transform var(--transition-fast)'
     }}>
-      <Handle type="target" position={Position.Top} style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
-      <Handle type="target" position={Position.Left} id="left" style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="target" position={Position.Top} style={{ background: 'var(--accent)', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="target" position={Position.Left} id="left" style={{ background: 'var(--accent)', width: 6, height: 6, borderRadius: 2 }} />
 
       {/* Node Header */}
       <div style={{
-        padding: '6px 10px',
+        padding: '7px 10px',
         backgroundColor: 'var(--bg-subtle)',
         borderBottom: '1px solid var(--border-main)',
         display: 'flex',
@@ -42,75 +43,75 @@ function CommitmentNode({ data }) {
         <div style={{
           fontSize: '12px',
           fontWeight: 600,
-          color: 'var(--text-main)',
+          color: 'var(--text-primary)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis'
         }}>
           {data.deliverable || data.label}
         </div>
-        <span className={`badge-classic ${badgeClass}`} style={{ flexShrink: 0 }}>
+        <span className={`badge ${badgeClass}`} style={{ flexShrink: 0 }}>
           {data.risk_level || 'LOW'}
         </span>
       </div>
 
       {/* Node Body */}
       <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          <strong style={{ color: 'var(--text-main)' }}>{data.owner}</strong> &rarr; {data.recipient}
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>{data.owner}</strong> &rarr; {data.recipient}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-dim)', paddingTop: '4px', borderTop: '1px solid var(--border-subtle)' }}>
-          <span>Due: <strong>{data.deadline || 'Unspecified'}</strong></span>
-          <span style={{ fontFamily: 'var(--font-mono)' }}>{Math.round((data.confidence || 0.85) * 100)}% conf</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10.5px', color: 'var(--text-tertiary)', paddingTop: '4px', borderTop: '1px solid var(--border-subtle)' }}>
+          <span>Due: <strong style={{ color: 'var(--text-secondary)' }}>{data.deadline || 'Unspecified'}</strong></span>
+          <span className="data-value" style={{ fontSize: '10px' }}>{Math.round((data.confidence || 0.85) * 100)}% conf</span>
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
-      <Handle type="source" position={Position.Right} id="right" style={{ background: '#58a6ff', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: 'var(--accent)', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="source" position={Position.Right} id="right" style={{ background: 'var(--accent)', width: 6, height: 6, borderRadius: 2 }} />
     </div>
   );
 }
 
-// Custom Classic Node for People
+// Custom Node for People
 function PersonNode({ data }) {
   const isClient = data.role && data.role.toLowerCase().includes('client');
 
   return (
     <div style={{
-      padding: '6px 12px',
+      padding: '7px 12px',
       backgroundColor: 'var(--bg-subtle)',
       border: `1px solid ${isClient ? 'var(--risk-medium-border)' : 'var(--border-main)'}`,
       borderRadius: 'var(--radius-sm)',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
       display: 'flex',
       alignItems: 'center',
       gap: '8px'
     }}>
-      <Handle type="target" position={Position.Left} style={{ background: '#8b949e', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="target" position={Position.Left} style={{ background: 'var(--text-tertiary)', width: 6, height: 6, borderRadius: 2 }} />
       <div style={{
-        width: '20px',
-        height: '20px',
+        width: '22px',
+        height: '22px',
         borderRadius: 'var(--radius-xs)',
         backgroundColor: isClient ? 'var(--risk-medium-bg)' : 'var(--bg-hover)',
-        border: `1px solid ${isClient ? 'var(--risk-medium-border)' : 'var(--border-main)'}`,
+        border: `1px solid ${isClient ? 'var(--risk-medium-border)' : 'var(--border-subtle)'}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 700,
-        fontSize: '10px',
-        color: isClient ? 'var(--risk-medium)' : 'var(--text-main)'
+        fontSize: '11px',
+        color: isClient ? 'var(--risk-medium)' : 'var(--text-primary)'
       }}>
-        {data.label.charAt(0)}
+        {data.label ? data.label.charAt(0) : 'P'}
       </div>
       <div>
-        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
           {data.label}
         </div>
-        <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
           {data.role || 'Participant'}
         </div>
       </div>
-      <Handle type="source" position={Position.Right} style={{ background: '#8b949e', width: 6, height: 6, borderRadius: 2 }} />
+      <Handle type="source" position={Position.Right} style={{ background: 'var(--text-tertiary)', width: 6, height: 6, borderRadius: 2 }} />
     </div>
   );
 }
@@ -129,23 +130,20 @@ export default function DependencyGraph({ graphData, onSelectCommitment }) {
 
   if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
     return (
-      <div style={{
-        height: '520px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--text-dim)',
-        gap: '10px'
-      }}>
-        <ShieldAlert size={32} color="var(--text-dim)" />
-        <p style={{ fontSize: '12px' }}>No graph data loaded. Upload a chat export to construct the commitment graph.</p>
+      <div className="empty-state" style={{ height: '480px' }}>
+        <div className="empty-state-icon">
+          <Network size={22} />
+        </div>
+        <div className="empty-state-title">No graph data available</div>
+        <div className="empty-state-desc">
+          Upload or select a conversation thread to construct and visualize the commitment dependency graph.
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ width: '100%', height: '540px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '540px', backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-main)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
       <ReactFlow
         nodes={graphData.nodes}
         edges={graphData.edges}
@@ -154,7 +152,7 @@ export default function DependencyGraph({ graphData, onSelectCommitment }) {
         fitView
         fitViewOptions={{ padding: 0.25 }}
       >
-        <Background color="#21262d" gap={16} size={1} />
+        <Background color="#1c222d" gap={16} size={1} />
         <Controls />
       </ReactFlow>
     </div>

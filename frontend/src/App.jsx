@@ -12,16 +12,18 @@ import WhatIfSimulator from './pages/WhatIfSimulator';
 import BenchmarkView from './pages/BenchmarkView';
 
 import { api } from './api/client';
+import { WifiOff, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [backendOnline, setBackendOnline] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState('');
-  
+
   const [commitments, setCommitments] = useState([]);
   const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
   const [risks, setRisks] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Modals & Drawers state
   const [isIngestOpen, setIsIngestOpen] = useState(false);
@@ -63,7 +65,6 @@ export default function App() {
       if (convs && convs.length > 0) {
         setActiveConversationId(convs[0].id);
       } else {
-        // If brand new, open Ingest modal so user can load demo WhatsApp export with one click
         setIsIngestOpen(true);
       }
     } catch (err) {
@@ -73,6 +74,7 @@ export default function App() {
   };
 
   const loadConversationData = async (convId) => {
+    setLoading(true);
     try {
       const [comms, graph, riskList] = await Promise.all([
         api.listCommitments(convId),
@@ -84,6 +86,8 @@ export default function App() {
       setRisks(riskList || []);
     } catch (err) {
       console.error('Failed to load conversation data:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,7 +96,7 @@ export default function App() {
     setConversations(convs);
     setActiveConversationId(newConvId);
     await loadConversationData(newConvId);
-    setCurrentTab('graph'); // Take user straight to the graph!
+    setCurrentTab('graph');
   };
 
   const handleOpenEvidence = async (commitmentId) => {
@@ -121,8 +125,8 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Navigation */}
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-canvas)' }}>
+      {/* ── Top Navigation ── */}
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -131,35 +135,41 @@ export default function App() {
         activeConversation={(conversations || []).find(c => c && c.id === activeConversationId)}
       />
 
-      {/* Backend Offline Banner */}
+      {/* ── Backend Offline Banner ── */}
       {!backendOnline && (
-        <div style={{
-          margin: '12px 20px 0 20px',
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-sm)',
-          backgroundColor: 'var(--risk-high-bg)',
-          border: '1px solid var(--risk-high-border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          color: 'var(--risk-high)',
-          fontSize: '12px'
-        }}>
-          <div>
-            <strong>FastAPI Backend Offline:</strong> Unable to connect to <code style={{ backgroundColor: 'var(--bg-app)', padding: '2px 5px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-main)', fontFamily: 'var(--font-mono)' }}>http://127.0.0.1:8000</code>. Verify that the Uvicorn service is running.
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="alert-error fade-in"
+          style={{ margin: '12px 20px 0' }}
+        >
+          <WifiOff size={14} style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, fontSize: '12px' }}>
+            <strong>FastAPI backend offline</strong> — Cannot connect to{' '}
+            <code>http://127.0.0.1:8000</code>. Verify that the Uvicorn service is running.
           </div>
           <button
-            onClick={checkHealthAndInit}
             className="btn-danger"
-            style={{ fontSize: '11px', padding: '3px 10px' }}
+            onClick={checkHealthAndInit}
+            style={{ fontSize: '11px', padding: '3px 10px', flexShrink: 0 }}
           >
-            Retry Connection
+            <RefreshCw size={11} />
+            <span>Retry</span>
           </button>
         </div>
       )}
 
-      {/* Main Content Viewport */}
-      <main style={{ flex: 1, padding: '20px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
+      {/* ── Main Content Viewport ── */}
+      <main
+        role="main"
+        style={{
+          flex: 1,
+          padding: '20px',
+          maxWidth: '1440px',
+          width: '100%',
+          margin: '0 auto',
+        }}
+      >
         {currentTab === 'dashboard' && (
           <Dashboard
             commitments={commitments}
@@ -171,6 +181,7 @@ export default function App() {
             onOpenWhatIf={handleOpenWhatIf}
             onOpenEvidence={handleOpenEvidence}
             onOpenIngest={() => setIsIngestOpen(true)}
+            loading={loading}
           />
         )}
 
@@ -179,6 +190,7 @@ export default function App() {
             commitments={commitments}
             onOpenEvidence={handleOpenEvidence}
             onOpenWhatIf={handleOpenWhatIf}
+            loading={loading}
           />
         )}
 
@@ -186,6 +198,7 @@ export default function App() {
           <GraphView
             graphData={graphData}
             onSelectCommitment={handleOpenEvidence}
+            loading={loading}
           />
         )}
 
@@ -195,6 +208,7 @@ export default function App() {
             onOpenEvidence={handleOpenEvidence}
             onOpenApproval={handleOpenApproval}
             onOpenWhatIf={handleOpenWhatIf}
+            loading={loading}
           />
         )}
 
@@ -211,7 +225,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Drawers & Modals */}
+      {/* ── Drawers & Modals ── */}
       <IngestModal
         isOpen={isIngestOpen}
         onClose={() => setIsIngestOpen(false)}

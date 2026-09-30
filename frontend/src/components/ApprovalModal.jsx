@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldAlert, Check, Copy, AlertCircle, ShieldCheck } from 'lucide-react';
 import { api } from '../api/client';
 
@@ -6,6 +6,16 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen && !submitting) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, submitting, onClose]);
 
   if (!isOpen || !recommendation) return null;
 
@@ -48,49 +58,32 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 100,
-      padding: '20px'
-    }}>
-      <div className="classic-panel" style={{
-        width: '100%',
-        maxWidth: '560px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)'
-      }}>
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !submitting) onClose(); }}>
+      <div className="modal-window" role="dialog" aria-modal="true" aria-labelledby="approval-title">
         {/* Title Bar */}
-        <div className="classic-panel-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldCheck size={14} color="var(--primary)" />
-            <span>HUMAN-IN-THE-LOOP APPROVAL GATE</span>
+        <div className="panel-header">
+          <div className="flex-row-gap-2">
+            <ShieldCheck size={14} color="var(--accent)" />
+            <span id="approval-title" className="panel-header-title">Human-in-the-Loop Safety Gate</span>
           </div>
           <button
+            className="btn-icon"
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '2px'
-            }}
+            disabled={submitting}
+            aria-label="Close modal"
           >
             <X size={15} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="classic-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="panel-body flex-col-gap-3">
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
-              Safety Gate: Autonomous dispatch is strictly prohibited
-            </div>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              The system synthesizes mitigations, but requires explicit human approval before any action is confirmed or dispatched.
+            <h2 className="heading-sm">
+              Safety Verification &amp; Dispatch Authority
+            </h2>
+            <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              PromiseOS policy enforces that autonomous recommendations are never dispatched without explicit human sign-off.
             </p>
           </div>
 
@@ -106,39 +99,37 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
             fontSize: '11px'
           }}>
             <div>
-              <span style={{ color: 'var(--text-dim)' }}>ACTION TYPE: </span>
-              <strong style={{ color: 'var(--text-main)', textTransform: 'uppercase' }}>
+              <span className="label-caps" style={{ fontSize: '9.5px', display: 'block' }}>Action Type:</span>
+              <strong style={{ color: 'var(--text-primary)', textTransform: 'uppercase' }}>
                 {recommendation.action_type || 'FOLLOW_UP'}
               </strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-dim)' }}>TARGET PERSON: </span>
-              <strong style={{ color: 'var(--text-main)' }}>
+              <span className="label-caps" style={{ fontSize: '9.5px', display: 'block' }}>Target Recipient:</span>
+              <strong style={{ color: 'var(--text-primary)' }}>
                 {recommendation.target_person || 'Participant'}
               </strong>
             </div>
           </div>
 
           {/* Description */}
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', marginBottom: '4px', textTransform: 'uppercase' }}>
-              Agent Rationale:
+          {recommendation.description && (
+            <div>
+              <span className="label-caps" style={{ display: 'block', marginBottom: '4px' }}>Agent Rationale:</span>
+              <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                {recommendation.description}
+              </div>
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-main)' }}>
-              {recommendation.description}
-            </div>
-          </div>
+          )}
 
           {/* Draft Message Preview */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Proposed Message:
-              </span>
+              <span className="label-caps">Proposed Message:</span>
               <button
-                className="btn-secondary"
+                className="btn-ghost"
                 onClick={handleCopy}
-                style={{ fontSize: '10px', padding: '1px 6px' }}
+                style={{ fontSize: '10.5px', padding: '2px 6px' }}
               >
                 {copied ? <Check size={11} color="var(--risk-low)" /> : <Copy size={11} />}
                 <span>{copied ? 'Copied' : 'Copy Text'}</span>
@@ -146,12 +137,12 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
             </div>
             <div style={{
               padding: '10px 12px',
-              backgroundColor: 'var(--bg-subtle)',
-              border: '1px solid var(--border-main)',
+              backgroundColor: 'var(--bg-canvas)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xs)',
               fontFamily: 'var(--font-mono)',
               fontSize: '11px',
-              color: 'var(--text-main)',
+              color: 'var(--text-primary)',
               whiteSpace: 'pre-wrap'
             }}>
               "{recommendation.draft_message}"
@@ -160,15 +151,9 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
 
           {/* Status Message */}
           {statusMessage && (
-            <div style={{
-              padding: '8px 12px',
-              backgroundColor: 'var(--risk-low-bg)',
-              border: '1px solid var(--risk-low-border)',
-              borderRadius: 'var(--radius-xs)',
-              color: 'var(--risk-low)',
-              fontSize: '11px'
-            }}>
-              {statusMessage}
+            <div className="success-inline">
+              <Check size={14} style={{ flexShrink: 0 }} />
+              <span>{statusMessage}</span>
             </div>
           )}
 
@@ -177,8 +162,9 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingTop: '6px',
-            borderTop: '1px solid var(--border-subtle)'
+            paddingTop: '8px',
+            borderTop: '1px solid var(--border-subtle)',
+            marginTop: '4px'
           }}>
             <button
               className="btn-danger"
@@ -186,7 +172,7 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
               disabled={submitting}
               style={{ fontSize: '11px', padding: '4px 10px' }}
             >
-              Dismiss Recommendation
+              Dismiss
             </button>
 
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -199,7 +185,7 @@ export default function ApprovalModal({ isOpen, onClose, recommendation, onAppro
                 disabled={submitting}
               >
                 <Check size={13} />
-                <span>Approve & Copy Draft</span>
+                <span>Approve &amp; Copy Draft</span>
               </button>
             </div>
           </div>

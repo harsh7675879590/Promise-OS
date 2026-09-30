@@ -11,7 +11,9 @@ import {
   Upload,
   FileText,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Inbox
 } from 'lucide-react';
 
 export default function Dashboard({ 
@@ -23,7 +25,8 @@ export default function Dashboard({
   setCurrentTab, 
   onOpenWhatIf,
   onOpenEvidence,
-  onOpenIngest
+  onOpenIngest,
+  loading = false
 }) {
   const safeConvs = conversations || [];
   const safeRisks = risks || [];
@@ -34,43 +37,47 @@ export default function Dashboard({
   const mediumRiskCount = safeRisks.filter(r => r && r.level === 'MEDIUM').length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Thread Overview & Actions Header */}
-      <div className="classic-panel">
-        <div className="classic-panel-header">
-          <span>ACTIVE CONVERSATION THREAD</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div className="page-container">
+      {/* ── Active Thread Control Bar ── */}
+      <div className="panel">
+        <div className="panel-header">
+          <div className="flex-row-gap-2">
+            <Layers size={13} color="var(--accent)" />
+            <span className="panel-header-title">Active Conversation Thread</span>
+          </div>
+          <div className="flex-row-gap-2">
             {safeConvs.length > 1 && (
               <select
                 value={activeConversationId}
                 onChange={(e) => onSelectConversation(e.target.value)}
-                style={{ fontSize: '11px', padding: '3px 8px' }}
+                style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '240px' }}
+                aria-label="Select conversation thread"
               >
                 {safeConvs.map(c => (
                   <option key={c.id} value={c.id}>{c.title || c.id.slice(0, 8)}</option>
                 ))}
               </select>
             )}
-            <button className="btn-secondary" onClick={onOpenIngest} style={{ fontSize: '11px', padding: '3px 8px' }}>
+            <button className="btn-secondary" onClick={onOpenIngest} style={{ fontSize: '11px', padding: '4px 10px' }}>
               <Upload size={12} />
               <span>Import Thread</span>
             </button>
-            <button className="btn-primary" onClick={() => setCurrentTab('whatif')} style={{ fontSize: '11px', padding: '3px 8px' }}>
+            <button className="btn-primary" onClick={() => setCurrentTab('whatif')} style={{ fontSize: '11px', padding: '4px 10px' }}>
               <Sliders size={12} />
               <span>What-If Simulator</span>
             </button>
           </div>
         </div>
-        <div className="classic-panel-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="panel-body flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)' }}>
-              {activeConv ? activeConv.title : 'Imported Conversation Thread'}
-            </h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Source: WhatsApp / Email Export • Multi-Agent Pipeline: Extraction, Resolution, Deterministic Risk, Evidence, Recommendation
+            <h1 className="heading-md">
+              {activeConv ? activeConv.title : 'Live Commitment & Risk Control Plane'}
+            </h1>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Source: WhatsApp / Email Export • Multi-Agent Pipeline: Extraction &rarr; Resolution &rarr; Deterministic Risk &rarr; Evidence &rarr; Recommendation
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="flex-row-gap-2">
             <button className="btn-secondary" onClick={() => setCurrentTab('graph')}>
               <GitFork size={13} />
               <span>Inspect Dependency Graph</span>
@@ -79,96 +86,116 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* 4 Metric Summary Panels */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-        {/* Metric 1 */}
-        <div className="classic-panel">
-          <div className="classic-panel-header">
-            <span>COMMITMENTS</span>
-            <CheckCircle2 size={14} color="var(--text-dim)" />
+      {/* ── 4 Metric Summary Panels ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+        {/* Metric 1: Total Commitments */}
+        <div className="metric-card">
+          <div className="flex-between">
+            <span className="metric-label">Extracted Commitments</span>
+            <CheckCircle2 size={15} color="var(--text-tertiary)" />
           </div>
-          <div className="classic-panel-body">
-            <div style={{ fontSize: '26px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-main)' }}>
+          {loading ? (
+            <div className="skeleton skeleton-text-lg" style={{ width: '60px', marginTop: '6px' }} />
+          ) : (
+            <div className="metric-value">
               {safeCommitments.length}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Parsed action items across participants
-            </div>
+          )}
+          <div className="metric-sub">
+            Parsed action items across participants
           </div>
         </div>
 
-        {/* Metric 2 */}
-        <div className="classic-panel" style={{ borderLeft: highRiskCount > 0 ? '3px solid var(--risk-high)' : undefined }}>
-          <div className="classic-panel-header">
-            <span>AT-RISK DELIVERABLES</span>
-            <AlertTriangle size={14} color={highRiskCount > 0 ? 'var(--risk-high)' : 'var(--text-dim)'} />
+        {/* Metric 2: At-Risk Deliverables */}
+        <div className={`metric-card ${highRiskCount > 0 ? 'risk-stripe-high' : ''}`}>
+          <div className="flex-between">
+            <span className="metric-label">At-Risk Deliverables</span>
+            <AlertTriangle size={15} color={highRiskCount > 0 ? 'var(--risk-high)' : 'var(--text-tertiary)'} />
           </div>
-          <div className="classic-panel-body">
-            <div style={{ fontSize: '26px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: highRiskCount > 0 ? 'var(--risk-high)' : 'var(--text-main)' }}>
-              {highRiskCount} <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>HIGH</span>
+          {loading ? (
+            <div className="skeleton skeleton-text-lg" style={{ width: '80px', marginTop: '6px' }} />
+          ) : (
+            <div className="metric-value" style={{ color: highRiskCount > 0 ? 'var(--risk-high)' : 'var(--text-primary)' }}>
+              {highRiskCount} <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', verticalAlign: 'middle' }}>CRITICAL</span>
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {mediumRiskCount} medium risk items flagged
-            </div>
+          )}
+          <div className="metric-sub">
+            {mediumRiskCount} medium risk items flagged
           </div>
         </div>
 
-        {/* Metric 3 */}
-        <div className="classic-panel">
-          <div className="classic-panel-header">
-            <span>DEPENDENCY CHAINS</span>
-            <GitFork size={14} color="var(--text-dim)" />
+        {/* Metric 3: Dependency Chains */}
+        <div className="metric-card">
+          <div className="flex-between">
+            <span className="metric-label">Dependency Chains</span>
+            <GitFork size={15} color="var(--text-tertiary)" />
           </div>
-          <div className="classic-panel-body">
-            <div style={{ fontSize: '26px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-main)' }}>
+          {loading ? (
+            <div className="skeleton skeleton-text-lg" style={{ width: '50px', marginTop: '6px' }} />
+          ) : (
+            <div className="metric-value">
               {safeCommitments.filter(c => c && c.action && c.action.toLowerCase().includes('depend')).length || (safeCommitments.length > 1 ? 1 : 0)}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Cross-person dependent commitments
-            </div>
+          )}
+          <div className="metric-sub">
+            Cross-person prerequisite promises
           </div>
         </div>
 
-        {/* Metric 4 */}
-        <div className="classic-panel">
-          <div className="classic-panel-header">
-            <span>AMD ROCm ACCELERATION</span>
-            <Cpu size={14} color="var(--rocm-accent)" />
+        {/* Metric 4: AMD ROCm Speedup */}
+        <div className="metric-card" style={{ borderLeft: '3px solid var(--rocm-border)' }}>
+          <div className="flex-between">
+            <span className="metric-label">AMD ROCm Acceleration</span>
+            <Cpu size={15} color="var(--rocm)" />
           </div>
-          <div className="classic-panel-body">
-            <div style={{ fontSize: '26px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--rocm-accent)' }}>
-              5.3x
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              vLLM HIP inference speedup vs CPU
-            </div>
+          <div className="metric-value" style={{ color: 'var(--rocm)' }}>
+            5.3&times;
+          </div>
+          <div className="metric-sub">
+            vLLM HIP inference speedup vs CPU
           </div>
         </div>
       </div>
 
-      {/* Main 2-Column Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '16px' }}>
+      {/* ── Main 2-Column Grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: '16px' }}>
         {/* Left Column: Recent Extracted Commitments Table */}
-        <div className="classic-panel">
-          <div className="classic-panel-header">
-            <span>EXTRACTED COMMITMENTS ({safeCommitments.length})</span>
+        <div className="panel">
+          <div className="panel-header">
+            <span className="panel-header-title">Extracted Commitments ({safeCommitments.length})</span>
             <button
-              className="btn-secondary"
+              className="btn-ghost"
               onClick={() => setCurrentTab('commitments')}
-              style={{ fontSize: '11px', padding: '2px 6px' }}
+              style={{ fontSize: '11px', padding: '2px 8px' }}
             >
               <span>View All</span>
               <ArrowRight size={11} />
             </button>
           </div>
           
-          <div className="classic-table-container" style={{ border: 'none', borderRadius: 0 }}>
-            {safeCommitments.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '12px' }}>
-                No commitments extracted yet. Click "Import Thread" above to parse messages.
+          <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+            {loading ? (
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="skeleton skeleton-text" />
+                <div className="skeleton skeleton-text" />
+                <div className="skeleton skeleton-text" />
+              </div>
+            ) : safeCommitments.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <Inbox size={20} />
+                </div>
+                <div className="empty-state-title">No commitments extracted yet</div>
+                <div className="empty-state-desc">
+                  Import a WhatsApp or Email transcript to let the 5-agent pipeline extract commitments and build the dependency graph.
+                </div>
+                <button className="btn-primary" onClick={onOpenIngest} style={{ marginTop: '6px' }}>
+                  <Upload size={12} />
+                  <span>Import Conversation</span>
+                </button>
               </div>
             ) : (
-              <table className="classic-table">
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>Deliverable</th>
@@ -182,25 +209,25 @@ export default function Dashboard({
                   {safeCommitments.slice(0, 6).map((c) => {
                     const isHigh = c.risk_level === 'HIGH';
                     const isMed = c.risk_level === 'MEDIUM';
-                    const badgeClass = isHigh ? 'badge-risk-high' : isMed ? 'badge-risk-medium' : 'badge-risk-low';
+                    const badgeClass = isHigh ? 'badge-high' : isMed ? 'badge-medium' : 'badge-low';
 
                     return (
                       <tr key={c.id}>
                         <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                             {c.deliverable || c.action}
                           </div>
                         </td>
                         <td>
-                          <span style={{ color: 'var(--text-muted)' }}>
-                            <strong style={{ color: 'var(--text-main)' }}>{c.owner}</strong> &rarr; {c.recipient}
+                          <span style={{ color: 'var(--text-secondary)' }}>
+                            <strong style={{ color: 'var(--text-primary)' }}>{c.owner}</strong> &rarr; {c.recipient}
                           </span>
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        <td className="data-value" style={{ color: 'var(--text-secondary)' }}>
                           {c.deadline || 'Unspecified'}
                         </td>
                         <td>
-                          <span className={`badge-classic ${badgeClass}`}>
+                          <span className={`badge ${badgeClass}`}>
                             {c.risk_level || 'LOW'}
                           </span>
                         </td>
@@ -208,7 +235,7 @@ export default function Dashboard({
                           <button
                             className="btn-secondary"
                             onClick={() => onOpenEvidence(c.id)}
-                            style={{ fontSize: '11px', padding: '2px 8px' }}
+                            style={{ fontSize: '11px', padding: '3px 8px' }}
                           >
                             Inspect
                           </button>
@@ -223,91 +250,109 @@ export default function Dashboard({
         </div>
 
         {/* Right Column: Risk Intelligence Feed */}
-        <div className="classic-panel">
-          <div className="classic-panel-header">
-            <span>RISK INTELLIGENCE & RECOMMENDED ACTIONS</span>
+        <div className="panel">
+          <div className="panel-header">
+            <span className="panel-header-title">Risk Intelligence &amp; Recommended Actions</span>
             <button
-              className="btn-secondary"
+              className="btn-ghost"
               onClick={() => setCurrentTab('risks')}
-              style={{ fontSize: '11px', padding: '2px 6px' }}
+              style={{ fontSize: '11px', padding: '2px 8px' }}
             >
               <span>Risk Center</span>
               <ArrowRight size={11} />
             </button>
           </div>
 
-          <div className="classic-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {safeRisks.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '12px' }}>
-                No active risks detected in this conversation.
+          <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {loading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="skeleton" style={{ height: '70px' }} />
+                <div className="skeleton" style={{ height: '70px' }} />
+              </div>
+            ) : safeRisks.length === 0 ? (
+              <div className="empty-state" style={{ padding: '32px 16px' }}>
+                <div className="empty-state-icon">
+                  <ShieldCheck size={20} color="var(--risk-low)" />
+                </div>
+                <div className="empty-state-title">No active risks detected</div>
+                <div className="empty-state-desc">
+                  All commitments in this thread are currently within safe delivery margins.
+                </div>
               </div>
             ) : (
               safeRisks.slice(0, 4).map((r) => {
                 const isHigh = r.level === 'HIGH';
                 const isMed = r.level === 'MEDIUM';
-                const badgeClass = isHigh ? 'badge-risk-high' : isMed ? 'badge-risk-medium' : 'badge-risk-low';
+                const badgeClass = isHigh ? 'badge-high' : isMed ? 'badge-medium' : 'badge-low';
+                const stripeClass = isHigh ? 'risk-stripe-high' : isMed ? 'risk-stripe-medium' : 'risk-stripe-low';
 
                 return (
                   <div
                     key={r.id}
+                    className={`panel-raised ${stripeClass}`}
                     style={{
                       padding: '10px 12px',
-                      backgroundColor: 'var(--bg-subtle)',
-                      border: '1px solid var(--border-main)',
-                      borderLeft: `3px solid ${isHigh ? 'var(--risk-high)' : isMed ? 'var(--risk-medium)' : 'var(--risk-low)'}`,
-                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span className={`badge-classic ${badgeClass}`}>
-                        {r.level} RISK (Score: {r.score.toFixed(2)})
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-                        Deadline: {r.deadline || 'Pending'}
-                      </span>
+                    <div className="flex-between">
+                      <div className="flex-row-gap-2">
+                        <span className={`badge ${badgeClass}`}>
+                          {r.level} RISK
+                        </span>
+                        <span className="data-value" style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
+                          Score: {typeof r.score === 'number' ? r.score.toFixed(3) : r.score}
+                        </span>
+                      </div>
+                      <button
+                        className="btn-ghost"
+                        onClick={() => onOpenEvidence(r.commitment_id)}
+                        style={{ fontSize: '10.5px', padding: '2px 6px' }}
+                      >
+                        Evidence &rarr;
+                      </button>
                     </div>
 
-                    <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {r.deliverable || r.commitment_action}
                     </div>
 
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Owner: <strong>{r.owner}</strong> &rarr; Recipient: <strong>{r.recipient}</strong>
-                    </div>
-
-                    {r.recommendation && (
-                      <div style={{
-                        marginTop: '4px',
-                        padding: '6px 8px',
-                        backgroundColor: 'var(--bg-panel)',
-                        border: '1px solid var(--border-main)',
-                        borderRadius: 'var(--radius-xs)',
-                        fontSize: '11px',
-                        color: 'var(--text-muted)'
-                      }}>
-                        <strong style={{ color: 'var(--primary-hover)' }}>Recommendation:</strong> {r.recommendation.description}
+                    {r.primary_bottleneck && (
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--text-tertiary)' }}>Bottleneck: </span>
+                        {r.primary_bottleneck}
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => onOpenEvidence(r.commitment_id)}
-                        style={{ fontSize: '11px', padding: '2px 8px' }}
-                      >
-                        Evidence
-                      </button>
-                      <button
-                        className="btn-primary"
-                        onClick={() => onOpenWhatIf(r.commitment_id)}
-                        style={{ fontSize: '11px', padding: '2px 8px' }}
-                      >
-                        Simulate Delay
-                      </button>
-                    </div>
+                    {r.recommended_action && (
+                      <div style={{
+                        marginTop: '4px',
+                        padding: '6px 8px',
+                        backgroundColor: 'var(--bg-canvas)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-xs)',
+                        fontSize: '11px',
+                        color: 'var(--text-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                          <ShieldCheck size={13} color="var(--accent)" style={{ flexShrink: 0 }} />
+                          <span className="truncate">{r.recommended_action}</span>
+                        </div>
+                        <button
+                          className="btn-primary"
+                          onClick={() => onOpenWhatIf(r.commitment_id)}
+                          style={{ fontSize: '10px', padding: '2px 7px', flexShrink: 0 }}
+                        >
+                          Simulate
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })
