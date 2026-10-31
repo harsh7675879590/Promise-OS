@@ -164,3 +164,4 @@ class HistoricalRAGService:
 
 
 rag_service = HistoricalRAGService()
+

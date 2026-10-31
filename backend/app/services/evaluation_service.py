@@ -2,7 +2,7 @@
 PromiseOS — Agentic Evaluation & Benchmarking Service
 Measures quantitative quality metrics for the multi-agent commitment pipeline:
 - Extraction Precision, Recall, and F1 Score
-- Dependency Graph Precision & Recall
+- Dependency Graph Precision, Recall, and Accuracy
 - Evidence Groundedness / Faithfulness (anti-hallucination rate)
 - Risk Calibration Score
 - Recommendation Actionability Rate
@@ -11,6 +11,7 @@ Measures quantitative quality metrics for the multi-agent commitment pipeline:
 from typing import Dict, List, Any
 from datetime import datetime
 import time
+from ..models.schemas import RiskLevel
 
 
 BENCHMARK_SCENARIOS = [
@@ -75,7 +76,7 @@ BENCHMARK_SCENARIOS = [
 class EvaluationService:
     """Computes empirical quality and precision metrics across benchmark transcripts."""
 
-    def run_evaluation(self) -> Dict[str, Any]:
+    async def run_evaluation(self) -> Dict[str, Any]:
         from ..api.conversations import parse_whatsapp_text
         from ..agents.extraction_agent import ExtractionAgent
         from ..agents.resolution_agent import ResolutionAgent
@@ -111,58 +112,45 @@ class EvaluationService:
             messages = parse_whatsapp_text(scenario["raw_text"], conv_id)
             gt = scenario["ground_truth"]
 
-            # 1. Extraction (synchronous run of extraction heuristics)
-            # Use deterministic synchronous parser to evaluate algorithmic coverage
-            extracted_commitments = []
-            for msg in messages:
-                # Use standard extraction rules
-                lower = msg.text.lower()
-                if any(v in lower for v in ["i'll send", "i will send", "i'll deliver", "i will finish", "i'll complete", "i will provide", "not yet", "yes, i'll"]):
-                    pass
+            # 1. Extraction Agent
+            commitments = await extraction_agent.run(messages, conv_id)
+            all_commitments = {c.id: c for c in commitments}
 
-            # Run actual ExtractionAgent
-            import asyncio
-            try:
-                commitments = asyncio.run(extraction_agent.run(messages, conv_id))
-            except RuntimeError:
-                # In case already running inside an active event loop
-                import nest_asyncio
-                # fallback loop handling
-                loop = asyncio.get_event_loop()
-                commitments = loop.run_until_complete(extraction_agent.run(messages, conv_id))
+            # 2. Resolution Agent
+            dependencies = await resolution_agent.run(commitments, messages)
 
-            # 2. Resolution
-            try:
-                dependencies = resolution_agent.run(commitments, messages)
-            except Exception:
-                dependencies = []
+            # 3. Risk Agent
+            risks = risk_agent.compute_all(commitments, dependencies)
 
-            # 3. Risk Assessment
-            try:
-                risks = risk_agent.compute_all(commitments, dependencies)
-            except Exception:
-                risks = []
-
-            # 4. Evidence Grounding
+            # 4. Evidence Agent
             evidence_list = []
-            comms_by_id = {c.id: c for c in commitments}
             for r in risks:
-                c = comms_by_id.get(r.commitment_id)
-                if c:
-                    try:
-                        evs = asyncio.run(evidence_agent.run(r, c, comms_by_id, messages, dependencies))
-                    except RuntimeError:
-                        loop = asyncio.get_event_loop()
-                        evs = loop.run_until_complete(evidence_agent.run(r, c, comms_by_id, messages, dependencies))
-                    evidence_list.extend(evs)
+                if r.level in [RiskLevel.HIGH, RiskLevel.MEDIUM]:
+                    c = all_commitments.get(r.commitment_id)
+                    if c:
+                        evs = await evidence_agent.run(
+                            assessment=r,
+                            commitment=c,
+                            all_commitments=all_commitments,
+                            messages=messages,
+                            dependencies=dependencies
+                        )
+                        evidence_list.extend(evs)
 
-            # 5. Recommendation
+            # 5. Recommendation Agent
             recs = []
-            try:
-                recs = asyncio.run(recommendation_agent.run(risks, commitments, dependencies))
-            except RuntimeError:
-                loop = asyncio.get_event_loop()
-                recs = loop.run_until_complete(recommendation_agent.run(risks, commitments, dependencies))
+            for r in risks:
+                if r.level in [RiskLevel.HIGH, RiskLevel.MEDIUM]:
+                    c = all_commitments.get(r.commitment_id)
+                    if c:
+                        rec = await recommendation_agent.run(
+                            assessment=r,
+                            commitment=c,
+                            evidence=evidence_list,
+                            all_commitments=all_commitments
+                        )
+                        if rec:
+                            recs.append(rec)
 
             # Calculate scenario statistics
             c_count = len(commitments)
@@ -181,15 +169,16 @@ class EvaluationService:
             total_extracted_deps += d_count
             total_matched_deps += matched_d
 
-            # Evidence groundedness: check if anchored to source_message_id
+            # Evidence groundedness: check if anchored to source_message_id or source_commitment_id
             for ev in evidence_list:
                 total_evidence_claims += 1
                 if ev.source_message_id or ev.source_commitment_id:
                     grounded_evidence_claims += 1
 
+            # Recommendation actionability
             for rec in recs:
                 total_recommendations += 1
-                if rec.draft_message and rec.target_person:
+                if rec.draft_message and (getattr(rec, "target_person_name", None) or getattr(rec, "target_person_id", None)):
                     actionable_recommendations += 1
 
             scenario_evaluations.append({

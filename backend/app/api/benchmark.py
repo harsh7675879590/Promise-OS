@@ -30,13 +30,13 @@ async def execute_live_benchmark(batch_size: int = Query(50, ge=10, le=200)):
 @router.get("/evaluation")
 async def get_evaluation_metrics():
     """Returns quality evaluation metrics (Precision, Recall, F1, Groundedness)."""
-    return evaluation_service.run_evaluation()
+    return await evaluation_service.run_evaluation()
 
 
 @router.post("/evaluation/run")
 async def execute_evaluation_run():
     """Executes a live evaluation run across all annotated benchmark scenarios."""
-    return evaluation_service.run_evaluation()
+    return await evaluation_service.run_evaluation()
 
 
 @router.get("/rag/profiles")

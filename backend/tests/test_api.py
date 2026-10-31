@@ -102,6 +102,21 @@ async def run_api_tests():
         assert res.status_code == 200
         print(f"POST /benchmark/run => 200 OK: Speedup {res.json()['speedup_factor']}x")
 
+        # 10. Agent Evaluation Metrics
+        res = await client.get("/evaluation")
+        assert res.status_code == 200
+        eval_data = res.json()
+        print(f"GET /evaluation => 200 OK: Extraction F1 {eval_data['extraction_metrics']['f1_score']}, Faithfulness {eval_data['evidence_groundedness']['faithfulness_score']}")
+        assert eval_data["extraction_metrics"]["f1_score"] > 0.8
+        assert eval_data["evidence_groundedness"]["faithfulness_score"] > 0.9
+
+        # 11. Historical RAG Store Profiles
+        res = await client.get("/rag/profiles")
+        assert res.status_code == 200
+        rag_profiles = res.json()
+        print(f"GET /rag/profiles => 200 OK (returned {len(rag_profiles)} participant profiles)")
+        assert len(rag_profiles) >= 2
+
     print("\nAll API integration tests PASSED!")
 
 
