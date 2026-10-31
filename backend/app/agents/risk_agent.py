@@ -9,6 +9,7 @@ from typing import List, Dict, Tuple
 from ..models.schemas import (
     Commitment, DependencyEdge, RiskAssessment, RiskFactor, RiskLevel, CommitmentStatus
 )
+from ..services.rag_service import rag_service
 
 
 class RiskAgent:
@@ -108,13 +109,10 @@ class RiskAgent:
             description=upstream_desc
         ))
 
-        # 3. Historical Lateness (Weight: 0.15)
-        # In conversation context, Amit indicated 'Not yet, will do it today' -> historical delay
-        hist_val = 0.30
-        hist_desc = "Standard baseline historical delivery variance"
-        if "amit" in commitment.owner_name.lower():
-            hist_val = 0.65
-            hist_desc = "Delivery delay signal observed in Wednesday check-in"
+        # 3. Historical Lateness (Weight: 0.15) — Grounded via Historical RAG Service
+        rag_profile = rag_service.query_historical_reliability(commitment.owner_name)
+        hist_val = rag_profile.get("historical_lateness_factor", 0.30)
+        hist_desc = rag_profile.get("description", "Standard baseline historical delivery variance")
         factors.append(RiskFactor(
             name="historical_lateness",
             value=hist_val,

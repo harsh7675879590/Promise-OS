@@ -12,6 +12,7 @@ Tests FastAPI endpoints:
 """
 
 import asyncio
+import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.db.session import init_db
@@ -25,6 +26,11 @@ SAMPLE_TRANSCRIPT = """
 [Wed 09:00] Harshit: Amit, did you send the pricing?
 [Wed 09:41] Amit: Not yet, will do it today.
 """.strip()
+
+
+@pytest.mark.anyio
+async def test_api_integration():
+    await run_api_tests()
 
 
 async def run_api_tests():

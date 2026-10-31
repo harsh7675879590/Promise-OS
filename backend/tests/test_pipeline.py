@@ -28,6 +28,11 @@ SAMPLE_TRANSCRIPT = """
 """.strip()
 
 
+@pytest.mark.anyio
+async def test_pipeline_execution():
+    await run_pipeline_test()
+
+
 async def run_pipeline_test():
     print("\n--- 1. Testing DB Initialization ---")
     await init_db()

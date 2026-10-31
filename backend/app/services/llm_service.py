@@ -12,8 +12,8 @@ from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger("promiseos.llm")
 
-# AMD ROCm / vLLM endpoint configuration
-VLLM_ROCM_URL = os.getenv("VLLM_ROCM_URL", "http://localhost:8000/v1")
+# AMD ROCm / vLLM endpoint configuration (default to port 8001 or 8080 to avoid collision with FastAPI on 8000)
+VLLM_ROCM_URL = os.getenv("VLLM_ROCM_URL", "http://localhost:8001/v1")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 DEFAULT_MODEL = os.getenv("PROMISEOS_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct")
 

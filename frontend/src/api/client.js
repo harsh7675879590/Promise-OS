@@ -105,5 +105,20 @@ export const api = {
   runBenchmark: (batch_size = 50) =>
     request(`/benchmark/run?batch_size=${batch_size}`, {
       method: 'POST'
+    }),
+
+  // Agent Quality Evaluation Metrics
+  getEvaluation: () => request('/evaluation'),
+  runEvaluation: () =>
+    request('/evaluation/run', {
+      method: 'POST'
+    }),
+
+  // Historical RAG Store
+  getRagProfiles: () => request('/rag/profiles'),
+  indexRagOutcome: (owner, deliverable, on_time, notes = '') =>
+    request('/rag/index', {
+      method: 'POST',
+      body: JSON.stringify({ owner, deliverable, on_time, notes })
     })
 };
