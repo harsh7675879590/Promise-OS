@@ -132,7 +132,9 @@ export default function App() {
         setCurrentTab={setCurrentTab}
         backendOnline={backendOnline}
         onOpenIngest={() => setIsIngestOpen(true)}
-        activeConversation={(conversations || []).find(c => c && c.id === activeConversationId)}
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onSelectConversation={setActiveConversationId}
       />
 
       {/* ── Backend Offline Banner ── */}
@@ -181,6 +183,7 @@ export default function App() {
             onOpenWhatIf={handleOpenWhatIf}
             onOpenEvidence={handleOpenEvidence}
             onOpenIngest={() => setIsIngestOpen(true)}
+            onOpenApproval={handleOpenApproval}
             loading={loading}
           />
         )}
